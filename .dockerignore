@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log
+.git
+.gemini
+Dockerfile
+.dockerignore
+compose.yaml
+*.md
