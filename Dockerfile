@@ -13,11 +13,17 @@ ENV PORT=3000
 COPY package.json ./
 COPY index.html ./
 
-# Install production dependencies (if any are added later)
-RUN npm install --omit=dev && npm cache clean --force
+# Install production dependencies and build native sqlite3 addon if needed
+RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
+    npm install --omit=dev && \
+    apk del .build-deps && \
+    npm cache clean --force
 
 # Copy the rest of the application source code
 COPY server.js ./
+
+# Create data directory and set ownership to node user
+RUN mkdir -p /usr/src/app/data && chown -R node:node /usr/src/app
 
 # Expose port 3000 to the container network
 EXPOSE 3000

@@ -1,9 +1,40 @@
 import http from 'http';
 import crypto from 'crypto';
 import fs from 'fs';
+import path from 'path';
+import sqlite3 from 'sqlite3';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '127.0.0.1'; // MUST listen on localhost or 127.0.0.1 when testing
+
+const DB_PATH = process.env.DB_PATH || './shorten.db';
+
+// Ensure the directory for the database exists
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Initialize SQLite database
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error('Error opening SQLite database:', err.message);
+    process.exit(1);
+  }
+  console.log(`Connected to SQLite database at: ${DB_PATH}`);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS urls (
+      short_code TEXT PRIMARY KEY,
+      original_url TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating urls table:', err.message);
+      process.exit(1);
+    }
+  });
+});
 
 // In-memory cache for shortened URLs: shortCode -> originalUrl
 const urlCache = new Map();
@@ -140,19 +171,29 @@ const server = http.createServer((req, res) => {
 
         // Generate short code
         const shortCode = generateKey();
-        
-        // Store in-memory cache mapping
-        urlCache.set(shortCode, originalUrl);
 
-        // Return response dynamically using client request host header
-        const proto = req.headers['x-forwarded-proto'] || 'http';
-        const hostHeader = req.headers.host || `${HOST}:${PORT}`;
-        const shortenedLink = `${proto}://${hostHeader}/${shortCode}`;
-        return sendJSON(res, 201, {
-          shortCode,
-          shortUrl: shortenedLink,
-          originalUrl
+        // Store in SQLite database
+        const stmt = db.prepare('INSERT INTO urls (short_code, original_url) VALUES (?, ?)');
+        stmt.run(shortCode, originalUrl, function (err) {
+          if (err) {
+            console.error('Database insert error:', err.message);
+            return sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
+          }
+
+          // Store in-memory cache mapping
+          urlCache.set(shortCode, originalUrl);
+
+          // Return response dynamically using client request host header
+          const proto = req.headers['x-forwarded-proto'] || 'http';
+          const hostHeader = req.headers.host || `${HOST}:${PORT}`;
+          const shortenedLink = `${proto}://${hostHeader}/${shortCode}`;
+          return sendJSON(res, 201, {
+            shortCode,
+            shortUrl: shortenedLink,
+            originalUrl
+          });
         });
+        stmt.finalize();
 
       } catch (err) {
         return sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
@@ -160,6 +201,18 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+
+  // // GET /api/urls -> Show all database contents
+  // if (req.method === 'GET' && pathname === '/api/urls') {
+  //   db.all('SELECT short_code AS shortCode, original_url AS originalUrl, created_at AS createdAt FROM urls ORDER BY created_at DESC', [], (err, rows) => {
+  //     if (err) {
+  //       console.error('Database query error:', err.message);
+  //       return sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to retrieve database content.' });
+  //     }
+  //     return sendJSON(res, 200, rows);
+  //   });
+  //   return;
+  // }
 
   // GET /:code -> Redirect to original URL
   // Validate that code is alphanumeric using simple strict regex to avoid path traversal
@@ -175,9 +228,30 @@ const server = http.createServer((req, res) => {
         'Cache-Control': 'public, max-age=31536000, immutable'
       });
       return res.end();
-    } else {
-      return sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
     }
+
+    // Cache miss - query the SQLite database
+    db.get('SELECT original_url FROM urls WHERE short_code = ?', [shortCode], (err, row) => {
+      if (err) {
+        console.error('Database query error:', err.message);
+        return sendJSON(res, 500, { error: 'Internal Server Error', message: 'Database error occurred.' });
+      }
+
+      if (row && row.original_url) {
+        const dbUrl = row.original_url;
+        // Populate cache for subsequent redirects
+        urlCache.set(shortCode, dbUrl);
+
+        res.writeHead(308, {
+          Location: dbUrl,
+          'Cache-Control': 'public, max-age=31536000, immutable'
+        });
+        return res.end();
+      } else {
+        return sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
+      }
+    });
+    return;
   }
 
   // Fallback for all other routes
@@ -192,3 +266,22 @@ server.on('error', (err) => {
 server.listen(PORT, HOST, () => {
   console.log(`URL Shortener server running at http://${HOST}:${PORT}/`);
 });
+
+// Graceful shutdown
+function shutdown() {
+  console.log('Shutting down server...');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing SQLite database:', err.message);
+      } else {
+        console.log('SQLite database closed.');
+      }
+      process.exit(0);
+    });
+  });
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

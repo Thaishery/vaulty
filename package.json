@@ -8,6 +8,9 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  },
   "author": "",
   "license": "ISC"
 }
