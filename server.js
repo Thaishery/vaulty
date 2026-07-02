@@ -109,7 +109,7 @@ const server = http.createServer((req, res) => {
     setSecurityHeaders(res, csp);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     try {
-      let html = fs.readFileSync('./index.html', 'utf8');
+      let html = fs.readFileSync('./html/index.html', 'utf8');
       html = html.replace(/{{nonce}}/g, nonce);
       res.end(html);
     } catch (err) {
@@ -214,6 +214,21 @@ const server = http.createServer((req, res) => {
   //   return;
   // }
 
+  // GET /insta_logo.png -> Serve the Instagram logo image
+  if (req.method === 'GET' && pathname === '/insta_logo.png') {
+    res.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400' // cache for 1 day
+    });
+    try {
+      const img = fs.readFileSync('./html/insta_logo.png');
+      return res.end(img);
+    } catch (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      return res.end('Image Not Found');
+    }
+  }
+
   // GET /:code -> Redirect to original URL
   // Validate that code is alphanumeric using simple strict regex to avoid path traversal
   const redirectMatch = pathname.match(/^\/([a-z0-9]+)$/i);
@@ -222,6 +237,22 @@ const server = http.createServer((req, res) => {
     const originalUrl = urlCache.get(shortCode);
 
     if (originalUrl) {
+      console.log(originalUrl.includes("//www.instagram.com/") ? 'is instagram' : 'not instagram');
+      const userAgent = req.headers['user-agent'] || '';
+      console.log(userAgent.includes("Discordbot") ? 'is discord' : 'not discord');
+      if (originalUrl.includes("//www.instagram.com/") && userAgent.includes("Discordbot")) {
+        const proto = req.headers['x-forwarded-proto'] || 'http';
+        const hostHeader = req.headers.host || `${HOST}:${PORT}`;
+        const ogImageUrl = `${proto}://${hostHeader}/insta_logo.png`;
+
+        let html = fs.readFileSync('./html/instagram_discord.html', 'utf8');
+        html = html.replace(/{{original_url}}/g, originalUrl);
+        html = html.replace(/{{og_image_url}}/g, ogImageUrl);
+        console.log(html);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.end(html);
+        return;
+      }
       // Redirect to original URL permanently and cache it
       res.writeHead(308, {
         Location: originalUrl,
@@ -241,6 +272,20 @@ const server = http.createServer((req, res) => {
         const dbUrl = row.original_url;
         // Populate cache for subsequent redirects
         urlCache.set(shortCode, dbUrl);
+
+        const userAgent = req.headers['user-agent'] || '';
+        if (dbUrl.includes("//www.instagram.com/") && userAgent.includes("Discordbot")) {
+          const proto = req.headers['x-forwarded-proto'] || 'http';
+          const hostHeader = req.headers.host || `${HOST}:${PORT}`;
+          const ogImageUrl = `${proto}://${hostHeader}/insta_logo.png`;
+
+          let html = fs.readFileSync('./html/instagram_discord.html', 'utf8');
+          html = html.replace(/{{original_url}}/g, dbUrl);
+          html = html.replace(/{{og_image_url}}/g, ogImageUrl);
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.end(html);
+          return;
+        }
 
         res.writeHead(308, {
           Location: dbUrl,

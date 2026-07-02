@@ -11,7 +11,7 @@ ENV PORT=3000
 
 # Copy application manifests
 COPY package.json ./
-COPY index.html ./
+COPY html ./html/
 
 # Install production dependencies and build native sqlite3 addon if needed
 RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
