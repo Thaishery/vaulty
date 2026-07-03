@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Shortener</title>
+    <title>Shorty</title>
     <style nonce="{{nonce}}">
         /* CSS resets and variables */
         :root {
@@ -56,16 +57,16 @@
             border-radius: 1.5rem;
             padding: 2.5rem 2rem;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+                inset 0 1px 1px rgba(255, 255, 255, 0.05);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                        box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .card:hover {
             transform: translateY(-4px);
             box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6),
-                        0 0 50px var(--accent-glow),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.08);
+                0 0 50px var(--accent-glow),
+                inset 0 1px 1px rgba(255, 255, 255, 0.08);
         }
 
         .header {
@@ -187,7 +188,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .error-message {
@@ -277,21 +280,85 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* QR Code Section */
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            gap: 0.85rem;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02);
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .qr-code {
+            padding: 0.75rem;
+            background: #ffffff;
+            border-radius: 0.75rem;
+            display: inline-block;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .qr-code:hover {
+            transform: scale(1.02);
+        }
+
+        .qr-code canvas,
+        .qr-code img {
+            display: block;
+            width: 140px !important;
+            height: 140px !important;
+        }
+
+        .qr-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .download-qr-btn {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" nonce="{{nonce}}"></script>
 </head>
+
 <body>
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>URL Shortener</h1>
+                <h1>Shorty</h1>
                 <p class="subtitle">Enter a long link to generate an optimized short URL</p>
             </div>
 
@@ -299,12 +366,7 @@
                 <div class="form-group">
                     <label for="url-input">Destination URL</label>
                     <div class="input-wrapper">
-                        <input 
-                            type="url" 
-                            id="url-input" 
-                            placeholder="https://example.com/very-long-path" 
-                            required
-                        >
+                        <input type="url" id="url-input" placeholder="https://example.com/very-long-path" required>
                     </div>
                 </div>
 
@@ -322,16 +384,23 @@
                     <span id="result-url" class="result-url"></span>
                     <button id="copy-btn" class="copy-btn">Copy</button>
                 </div>
+
+                <div class="qr-container">
+                    <div class="qr-label">Scan QR Code</div>
+                    <div id="qrcode" class="qr-code"></div>
+                    <a id="download-qr-btn" class="copy-btn download-qr-btn" href="#" download="qrcode.png"
+                        style="display: none;">Download QR</a>
+                </div>
             </div>
         </div>
-        
+
         <div class="footer">
-            Secure URL Shortener &copy; 2026
+            Shorty &copy; 2026
         </div>
     </div>
 
     <script nonce="{{nonce}}">
-        (function() {
+        (function () {
             const form = document.getElementById('shorten-form');
             const urlInput = document.getElementById('url-input');
             const submitBtn = document.getElementById('submit-btn');
@@ -341,6 +410,9 @@
             const resultSection = document.getElementById('result-section');
             const resultUrl = document.getElementById('result-url');
             const copyBtn = document.getElementById('copy-btn');
+            const qrcodeContainer = document.getElementById('qrcode');
+            const downloadQrBtn = document.getElementById('download-qr-btn');
+            let qrcodeInstance = null;
 
             // Dynamic UI validation styles
             urlInput.addEventListener('input', () => {
@@ -349,7 +421,7 @@
                     urlInput.classList.remove('valid', 'invalid');
                     return;
                 }
-                
+
                 try {
                     const parsed = new URL(value);
                     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
@@ -367,7 +439,7 @@
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
+
                 const urlValue = urlInput.value.trim();
                 if (!urlValue) {
                     showError('Please enter a URL.');
@@ -389,14 +461,14 @@
                 // Reset status indicators
                 hideError();
                 resultSection.style.display = 'none';
-                
+
                 // Loading states
                 submitBtn.disabled = true;
                 btnSpinner.style.display = 'inline-block';
                 btnText.textContent = 'Generating...';
 
                 try {
-                    const response = await fetch('/api/shorten', {
+                    const response = await fetch('/api/shorty', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -412,6 +484,42 @@
 
                     // Display shortened URL
                     resultUrl.textContent = data.shortUrl;
+
+                    // Generate QR Code
+                    if (!qrcodeInstance) {
+                        qrcodeInstance = new QRCode(qrcodeContainer, {
+                            text: data.shortUrl,
+                            width: 256,
+                            height: 256,
+                            colorDark: "#0f172a",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    } else {
+                        qrcodeInstance.clear();
+                        qrcodeInstance.makeCode(data.shortUrl);
+                    }
+
+                    // Setup QR Code download link (extract data URI from generated canvas/img)
+                    setTimeout(() => {
+                        const canvas = qrcodeContainer.querySelector('canvas');
+                        const img = qrcodeContainer.querySelector('img');
+                        let qrDataUrl = '';
+
+                        if (canvas) {
+                            qrDataUrl = canvas.toDataURL('image/png');
+                        } else if (img && img.src) {
+                            qrDataUrl = img.src;
+                        }
+
+                        if (qrDataUrl) {
+                            downloadQrBtn.href = qrDataUrl;
+                            downloadQrBtn.style.display = 'inline-flex';
+                        } else {
+                            downloadQrBtn.style.display = 'none';
+                        }
+                    }, 100);
+
                     resultSection.style.display = 'block';
                     resultSection.scrollIntoView({ behavior: 'smooth' });
 
@@ -432,7 +540,7 @@
                     await navigator.clipboard.writeText(targetText);
                     copyBtn.textContent = 'Copied!';
                     copyBtn.classList.add('copied');
-                    
+
                     setTimeout(() => {
                         copyBtn.textContent = 'Copy';
                         copyBtn.classList.remove('copied');
@@ -454,4 +562,5 @@
         })();
     </script>
 </body>
+
 </html>

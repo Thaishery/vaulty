@@ -1,14 +1,14 @@
 services:
-  shorturl:
+  shorty:
     build: .
-    container_name: shorturl-app
+    container_name: shorty-app
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=3000
-      - DB_PATH=/usr/src/app/data/shorten.db
+      - DB_PATH=/usr/src/app/data/shorty.db
     volumes:
       - ./data:/usr/src/app/data
     restart: unless-stopped

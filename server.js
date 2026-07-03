@@ -7,7 +7,7 @@ import sqlite3 from 'sqlite3';
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '127.0.0.1'; // MUST listen on localhost or 127.0.0.1 when testing
 
-const DB_PATH = process.env.DB_PATH || './shorten.db';
+const DB_PATH = process.env.DB_PATH || './shorty.db';
 
 // Ensure the directory for the database exists
 const dbDir = path.dirname(DB_PATH);
@@ -105,7 +105,7 @@ const server = http.createServer((req, res) => {
   // GET / -> API status check
   if (req.method === 'GET' && pathname === '/') {
     const nonce = crypto.randomBytes(16).toString('base64');
-    const csp = `default-src 'none'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; form-action 'self'; frame-ancestors 'none';`;
+    const csp = `default-src 'none'; script-src 'self' 'nonce-${nonce}' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none';`;
     setSecurityHeaders(res, csp);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     try {
@@ -119,8 +119,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST /api/shorten -> Create shortened URL
-  if (req.method === 'POST' && pathname === '/api/shorten') {
+  // POST /api/shorty -> Create shortened URL
+  if (req.method === 'POST' && pathname === '/api/shorty') {
     let body = '';
     let bodySize = 0;
     const maxBodySize = 10 * 1024; // 10KB limit to prevent DoS

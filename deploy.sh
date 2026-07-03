@@ -1,8 +1,7 @@
 #!/bin/bash
 
-#deploiment script for shorten
-#scp the diff of the folder shorten to raspi:/home/ras/shorten/
-scp -r * raspi:~/shorturl/
+#deploiment script for shorty
+rsync -av --exclude='data' * raspi:~/shorty/
 
 #docker compose build --no-cache --progress=plain
-ssh raspi "cd ~/shorturl && docker compose up -d --build"
+ssh raspi "cd ~/shorty && docker compose up -d --build"

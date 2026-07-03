@@ -1,5 +1,5 @@
 {
-  "name": "shorturl",
+  "name": "shorty",
   "version": "1.0.0",
   "description": "A simple, secure, API-only URL shortener using native Node.js",
   "main": "server.js",
