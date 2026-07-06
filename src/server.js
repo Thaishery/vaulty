@@ -3,6 +3,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '127.0.0.1'; // MUST listen on localhost or 127.0.0.1 when testing
@@ -102,14 +105,71 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
   const pathname = url.pathname;
 
+  // GET /assets/* -> Serve static files from src/assets/
+  if (req.method === 'GET' && pathname.startsWith('/assets/')) {
+    let safeSuffix;
+    try {
+      safeSuffix = decodeURIComponent(pathname.substring(8)); // '/assets/'.length is 8
+    } catch (e) {
+      return sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL encoding' });
+    }
+
+    const assetsDir = path.join(__dirname, 'assets');
+    const filePath = path.normalize(path.join(assetsDir, safeSuffix));
+
+    const isSafe = filePath.startsWith(assetsDir + path.sep) || filePath === assetsDir;
+    if (!isSafe) {
+      return sendJSON(res, 403, { error: 'Forbidden', message: 'Access denied' });
+    }
+
+    fs.stat(filePath, (err, stats) => {
+      if (err || !stats.isFile()) {
+        return sendJSON(res, 404, { error: 'Not Found', message: 'Asset not found' });
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.json': 'application/json',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.otf': 'font/otf'
+      };
+
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+      });
+
+      const stream = fs.createReadStream(filePath);
+      stream.on('error', (streamErr) => {
+        console.error('Error reading asset file:', streamErr.message);
+        if (!res.headersSent) {
+          sendJSON(res, 500, { error: 'Internal Server Error', message: 'Could not serve asset' });
+        }
+      });
+      return stream.pipe(res);
+    });
+    return;
+  }
+
   // GET / -> API status check
   if (req.method === 'GET' && pathname === '/') {
     const nonce = crypto.randomBytes(16).toString('base64');
-    const csp = `default-src 'none'; script-src 'self' 'nonce-${nonce}' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none';`;
+    const csp = `default-src 'none'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none';`;
     setSecurityHeaders(res, csp);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     try {
-      let html = fs.readFileSync('./html/index.html', 'utf8');
+      let html = fs.readFileSync(path.join(__dirname, 'html', 'index.html'), 'utf8');
       html = html.replace(/{{nonce}}/g, nonce);
       res.end(html);
     } catch (err) {
@@ -221,7 +281,7 @@ const server = http.createServer((req, res) => {
       'Cache-Control': 'public, max-age=86400' // cache for 1 day
     });
     try {
-      const img = fs.readFileSync('./html/insta_logo.png');
+      const img = fs.readFileSync(path.join(__dirname, 'html', 'insta_logo.png'));
       return res.end(img);
     } catch (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -245,7 +305,7 @@ const server = http.createServer((req, res) => {
         const hostHeader = req.headers.host || `${HOST}:${PORT}`;
         const ogImageUrl = `${proto}://${hostHeader}/insta_logo.png`;
 
-        let html = fs.readFileSync('./html/instagram_discord.html', 'utf8');
+        let html = fs.readFileSync(path.join(__dirname, 'html', 'instagram_discord.html'), 'utf8');
         html = html.replace(/{{original_url}}/g, originalUrl);
         html = html.replace(/{{og_image_url}}/g, ogImageUrl);
         console.log(html);
@@ -279,7 +339,7 @@ const server = http.createServer((req, res) => {
           const hostHeader = req.headers.host || `${HOST}:${PORT}`;
           const ogImageUrl = `${proto}://${hostHeader}/insta_logo.png`;
 
-          let html = fs.readFileSync('./html/instagram_discord.html', 'utf8');
+          let html = fs.readFileSync(path.join(__dirname, 'html', 'instagram_discord.html'), 'utf8');
           html = html.replace(/{{original_url}}/g, dbUrl);
           html = html.replace(/{{og_image_url}}/g, ogImageUrl);
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
