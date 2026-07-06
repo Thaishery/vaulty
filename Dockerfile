@@ -9,18 +9,14 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Copy application manifests
 COPY package.json ./
-COPY html ./html/
+COPY src/ ./
 
 # Install production dependencies and build native sqlite3 addon if needed
 RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
     npm install --omit=dev && \
     apk del .build-deps && \
     npm cache clean --force
-
-# Copy the rest of the application source code
-COPY server.js ./
 
 # Create data directory and set ownership to node user
 RUN mkdir -p /usr/src/app/data && chown -R node:node /usr/src/app
