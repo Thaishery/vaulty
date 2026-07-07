@@ -4,15 +4,16 @@ import fs from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
+import { KeyGenerator } from './Domain/links/KeyGenerator.js';
+import { Server } from './Infrastructure/Server.js';
+import { AssetsRoute } from './Presentation/routes/AssetsRoute.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const HOST = process.env.HOST || '127.0.0.1'; // MUST listen on localhost or 127.0.0.1 when testing
+const PORT = parseInt(process.env.PORT, 10);
+const HOST = process.env.HOST;
+const DB_PATH = process.env.DB_PATH;
 
-const DB_PATH = process.env.DB_PATH || './shorty.db';
-
-// Ensure the directory for the database exists
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
@@ -90,7 +91,10 @@ function sendJSON(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
-const server = http.createServer((req, res) => {
+const server = new Server();
+server.addRoute(AssetsRoute.routeMethod, AssetsRoute.routePath, AssetsRoute.handle);
+
+const server2 = http.createServer((req, res) => {
   const ip = req.socket.remoteAddress || 'unknown';
 
   // Apply rate limiting
@@ -230,7 +234,8 @@ const server = http.createServer((req, res) => {
         }
 
         // Generate short code
-        const shortCode = generateKey();
+        const keyGenerator = new KeyGenerator()
+        const shortCode = keyGenerator.generate();
 
         // Store in SQLite database
         const stmt = db.prepare('INSERT INTO urls (short_code, original_url) VALUES (?, ?)');
@@ -256,6 +261,7 @@ const server = http.createServer((req, res) => {
         stmt.finalize();
 
       } catch (err) {
+        console.log(err)
         return sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
       }
     });
@@ -364,18 +370,19 @@ const server = http.createServer((req, res) => {
 });
 
 // Global error handling
-server.on('error', (err) => {
+server2.on('error', (err) => {
   console.error('Server encountered error:', err.message);
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`URL Shortener server running at http://${HOST}:${PORT}/`);
-});
+// server2.listen(PORT, HOST, () => {
+//   console.log(`URL Shortener server running at http://${HOST}:${PORT}/`);
+// });
+server.start(PORT, HOST);
 
 // Graceful shutdown
 function shutdown() {
   console.log('Shutting down server...');
-  server.close(() => {
+  server2.close(() => {
     console.log('HTTP server closed.');
     db.close((err) => {
       if (err) {

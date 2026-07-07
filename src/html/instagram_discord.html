@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta property="og:title" content="Regarde ce post sur Instagram !" />
-    <meta property="og:type" content="video.other" /> <!-- ou website -->
-    <!-- Idéalement il faudrait fetch l'image du post Instagram en amont en tâche de fond -->
-    <meta property="og:image" content="{{og_image_url}}" /> 
-    <meta property="twitter:card" content="summary_large_image">
-</head>
-<body>
-    <!-- Redirection JavaScript de secours si jamais un humain atterrit ici -->
-    <script>window.location.href = "{{original_url}}";</script>
-</body>
+    <head>
+        <meta property="og:title" content="Regarde ce post sur Instagram !" />
+        <meta property="og:type" content="video.other" />
+        <meta property="og:image" content="{{og_image_url}}" />
+        <meta property="twitter:card" content="summary_large_image">
+    </head>
+
+    <body>
+        <script>window.location.href = "{{original_url}}";</script>
+    </body>
 </html>
