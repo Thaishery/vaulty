@@ -17,6 +17,7 @@ export default class LinkFactory {
         }catch(e){
             //TODO gestion erreur ici. 
             console.log(e);
+            throw e;
         }
     }
 }
