@@ -2,7 +2,6 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Server } from '../../Infrastructure/Server.js';
-import LinkRepository from '../../Infrastructure/Repository/LinkRepository.js';
 import RedirectDto from '../../Infrastructure/Dto/RedirectDto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -11,10 +10,15 @@ export class CodeRoute {
     static routePath = new RegExp(/^\/([a-z0-9]+)$/i);
     static routeMethod = "GET";
 
-    static async handle(req, res, next, urlCache, db) {
+    #linkRepository;
+
+    constructor(linkRepository){
+        this.#linkRepository = linkRepository;
+    }
+
+    async handle(req, res, next) {
         const shortCode = req.params.code;
-        const linkRepository = new LinkRepository(db, urlCache);
-        const link = await linkRepository.retrieveLinkByShortCode(shortCode);
+        const link = await this.#linkRepository.retrieveLinkByShortCode(shortCode);
         const originalUrl = link?.originalUrl;
 
         if (originalUrl) {

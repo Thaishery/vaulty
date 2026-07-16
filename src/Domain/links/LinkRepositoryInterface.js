@@ -6,4 +6,14 @@ export default class LinkRepositoryInterface {
     async retrieveLinkByShortCode(shortCode) {
         throw new Error("Method 'retrieveLinkByShortCode(shortCode)' must be implemented.");
     }
+
+    /**
+     * @param {Link} link
+     * @throws DatabaseError
+     * @throws CacheError
+     * @throws Error
+     */
+    async save(link) {
+        throw new Error("Method 'save(link)' must be implemented.");
+    }
 }

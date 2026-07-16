@@ -30,4 +30,18 @@ export default class LinkRepository extends LinkRepositoryInterface {
             });
         });
     }
+
+    async save(link) {
+        return new Promise((resolve, reject) => {
+            const stmt = this.#db.prepare('INSERT INTO urls (short_code, original_url) VALUES (?, ?)');
+            stmt.run(link.shortCode, link.originalUrl, (err) => {
+                if (err) {
+                    return reject(err);
+                }
+                this.#cache.set(link.shortCode, link.originalUrl);
+                resolve();
+            });
+            stmt.finalize();
+        });
+    }
 }
