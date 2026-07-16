@@ -55,12 +55,35 @@ export class Server {
     }
 
     stop() {
-        this.#httpsServer.close();
+        this.#httpsServer.close(async () => {
+            console.log('HTTP server closed.');
+            try {
+                await this.#db.close();
+                console.log('SQLite database closed.');
+                process.exit(0);
+            } catch (err) {
+                console.error('Error closing SQLite database:', err.message || err);
+                process.exit(1);
+            }
+        });
     }
 
     static sendJSON(res, statusCode, data) {
+        this.setSecurityHeaders(res);
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
+    }
+
+    static sendRedirect(res, redirectDto) {
+        this.setSecurityHeaders(res);
+        res.writeHead(redirectDto.statusCode, redirectDto.headers);
+        res.end();
+    }
+
+    static sendHTML(res, statusCode, html) {
+        this.setSecurityHeaders(res);
+        res.writeHead(statusCode, { 'Content-Type': 'text/html' });
+        res.end(html);
     }
 
     static setSecurityHeaders(res, cspHeader = "default-src 'none'; frame-ancestors 'none';") {

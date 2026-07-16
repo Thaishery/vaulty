@@ -3,6 +3,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Server } from '../../Infrastructure/Server.js';
 import LinkRepository from '../../Infrastructure/Repository/LinkRepository.js';
+import RedirectDto from '../../Infrastructure/Dto/RedirectDto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,16 +22,12 @@ export class CodeRoute {
               if (originalUrl.includes("//www.instagram.com/") && userAgent.includes("Discordbot")) {
                 let html = fs.readFileSync(path.join(__dirname, 'html', 'instagram_discord.html'), 'utf8');
                 html = html.replace(/{{original_url}}/g, originalUrl);
-                res.setHeader('Content-Type', 'text/html; charset=utf-8');
-                res.end(html);
+                Server.sendHTML(res, 200, html);
                 return;
               }
-              // Redirect to original URL permanently and cache it
-              res.writeHead(308, {
-                Location: originalUrl,
-                'Cache-Control': 'public, max-age=31536000, immutable'
-              });
-              return res.end();
+              const redirectDto = new RedirectDto(originalUrl, 308, {'Cache-Control': 'public, max-age=31536000, immutable'});
+              Server.sendRedirect(res, redirectDto)
+              return;
         }
 
         Server.sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
