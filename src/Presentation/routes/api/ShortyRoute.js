@@ -38,39 +38,16 @@ export class ShortyRoute {
                 }
 
                 const payload = JSON.parse(body);
-
-                // // Input validation
-                // if (!originalUrl || typeof originalUrl !== 'string') {
-                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL is required and must be a string.' });
-                // }
-
-                // if (originalUrl.length > 2048) {
-                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL length cannot exceed 2048 characters.' });
-                // }
-
-                // // Validate URL format and protocol
-                // let parsedUrl;
-                // try {
-                //     parsedUrl = new URL(originalUrl);
-                // } catch (_) {
-                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL format.' });
-                // }
-
-                // if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Only http and https protocols are supported.' });
-                // }
-
-                // Generate short code
                 const link = this.#linkFactory.create(payload.url);
                 try{
                     await this.#linkRepository.save(link);
                     const proto = req.headers['x-forwarded-proto'] || 'http';
                     const hostHeader = req.headers.host || "localhost:3000";
-                    const shortenedLink = `${proto}://${hostHeader}/${link.shortCode}`;
+                    const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
                     return Server.sendJSON(res, 201, {
-                        shortCode: link.shortCode,
+                        shortCode: link.shortCode.value(),
                         shortUrl: shortenedLink,
-                        originalUrl
+                        originalUrl: link.originalUrl.value()
                     });
                 } catch (e) {
                     return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });

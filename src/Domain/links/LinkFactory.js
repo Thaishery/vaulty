@@ -15,6 +15,7 @@ export default class LinkFactory {
             const shortCodeVo = new ShortCodeVo(this.#keyGenerator.generate());
             return new Link(shortCodeVo, originalUrlVo);
         }catch(e){
+            //TODO gestion erreur ici. 
             console.log(e);
         }
     }

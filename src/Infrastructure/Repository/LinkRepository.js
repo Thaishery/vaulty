@@ -1,5 +1,7 @@
 import LinkRepositoryInterface from '../../Domain/links/LinkRepositoryInterface.js';
 import Link from '../../Domain/links/Link.js';
+import ShortCodeVo from '../../Domain/links/ShortCodeVo.js';
+import OriginalUrlVo from '../../Domain/links/OriginalUrlVo.js';
 
 export default class LinkRepository extends LinkRepositoryInterface {
     #db;
@@ -13,7 +15,7 @@ export default class LinkRepository extends LinkRepositoryInterface {
 
     async retrieveLinkByShortCode(shortCode) {
         if (this.#cache.has(shortCode)) {
-            return new Link(shortCode, this.#cache.get(shortCode));
+            return new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(this.#cache.get(shortCode)));
         }
 
         return new Promise((resolve, reject) => {
@@ -25,8 +27,7 @@ export default class LinkRepository extends LinkRepositoryInterface {
                     return resolve(null);
                 }
                 this.#cache.set(shortCode, row.original_url);
-
-                resolve(new Link(shortCode, row.original_url));
+                resolve(new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(row.original_url)));
             });
         });
     }
@@ -34,11 +35,11 @@ export default class LinkRepository extends LinkRepositoryInterface {
     async save(link) {
         return new Promise((resolve, reject) => {
             const stmt = this.#db.prepare('INSERT INTO urls (short_code, original_url) VALUES (?, ?)');
-            stmt.run(link.shortCode, link.originalUrl, (err) => {
+            stmt.run(link.shortCode.value(), link.originalUrl.value(), (err) => {
                 if (err) {
                     return reject(err);
                 }
-                this.#cache.set(link.shortCode, link.originalUrl);
+                this.#cache.set(link.shortCode.value(), link.originalUrl.value());
                 resolve();
             });
             stmt.finalize();

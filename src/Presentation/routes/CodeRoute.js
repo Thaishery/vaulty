@@ -19,7 +19,7 @@ export class CodeRoute {
     async handle(req, res, next) {
         const shortCode = req.params.code;
         const link = await this.#linkRepository.retrieveLinkByShortCode(shortCode);
-        const originalUrl = link?.originalUrl;
+        const originalUrl = link?.originalUrl.value();
 
         if (originalUrl) {
               const userAgent = req.headers['user-agent'] || '';
