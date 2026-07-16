@@ -1,7 +1,4 @@
 import { Server } from "../../../Infrastructure/Server.js";
-import { KeyGenerator } from "../../../Domain/links/KeyGenerator.js";
-import LinkFactory from "../../../Domain/links/LinkFactory.js";
-import LinkRepository from "../../../Infrastructure/Repository/LinkRepository.js";
 
 export class ShortyRoute {
     static routePath = "/api/shorty";
@@ -41,31 +38,30 @@ export class ShortyRoute {
                 }
 
                 const payload = JSON.parse(body);
-                const originalUrl = payload.url;
 
-                // Input validation
-                if (!originalUrl || typeof originalUrl !== 'string') {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL is required and must be a string.' });
-                }
+                // // Input validation
+                // if (!originalUrl || typeof originalUrl !== 'string') {
+                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL is required and must be a string.' });
+                // }
 
-                if (originalUrl.length > 2048) {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL length cannot exceed 2048 characters.' });
-                }
+                // if (originalUrl.length > 2048) {
+                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'URL length cannot exceed 2048 characters.' });
+                // }
 
-                // Validate URL format and protocol
-                let parsedUrl;
-                try {
-                    parsedUrl = new URL(originalUrl);
-                } catch (_) {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL format.' });
-                }
+                // // Validate URL format and protocol
+                // let parsedUrl;
+                // try {
+                //     parsedUrl = new URL(originalUrl);
+                // } catch (_) {
+                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL format.' });
+                // }
 
-                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Only http and https protocols are supported.' });
-                }
+                // if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                //     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Only http and https protocols are supported.' });
+                // }
 
                 // Generate short code
-                const link = this.#linkFactory.create(originalUrl);
+                const link = this.#linkFactory.create(payload.url);
                 try{
                     await this.#linkRepository.save(link);
                     const proto = req.headers['x-forwarded-proto'] || 'http';

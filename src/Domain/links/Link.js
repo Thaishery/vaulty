@@ -1,10 +1,20 @@
+import ShortCodeVo from "./ShortCodeVo.js";
+import OriginalUrlVo from "./OriginalUrlVo.js";
+
 export default class Link {
     #shortCode
     #originalUrl
 
     constructor(shortCode, originalUrl) {
+        if (!(shortCode instanceof ShortCodeVo)) {
+            throw new Error('shortCode must be a ShortCodeVo');
+        }
+        if(!(originalUrl instanceof OriginalUrlVo)) {
+            throw new Error('originalUrl must be an OriginalUrlVo');
+        }
         this.#shortCode = shortCode;
         this.#originalUrl = originalUrl;
+        Object.freeze(this);
     }
 
     get shortCode() {
@@ -15,11 +25,9 @@ export default class Link {
         return this.#originalUrl;
     }
 
-    set shortCode(shortCode) {
-        this.#shortCode = shortCode;
-    }
-
-    set originalUrl(originalUrl) {
-        this.#originalUrl = originalUrl;
-    }
+    //TODO: 
+    // equals(other) {
+    //     if (!(other instanceof Link)) return false;
+    //     return this.#shortCode.equals(other.shortCode) && this.#originalUrl.equals(other.originalUrl);
+    // }
 }
