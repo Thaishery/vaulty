@@ -4,8 +4,8 @@ import { HomeRoute } from './Presentation/routes/HomeRoute.js';
 import Sqlite3 from './Infrastructure/Sqlite3.js';
 import { ShortyRoute } from './Presentation/routes/api/ShortyRoute.js';
 import { CodeRoute } from './Presentation/routes/CodeRoute.js';
-import { KeyGenerator } from './Domain/links/KeyGenerator.js';
-import LinkFactory from './Domain/links/LinkFactory.js';
+import { KeyGenerator } from './Domain/Links/KeyGenerator.js';
+import LinkFactory from './Domain/Links/LinkFactory.js';
 import LinkRepository from './Infrastructure/Repository/LinkRepository.js';
 
 const PORT = parseInt(process.env.PORT, 10);

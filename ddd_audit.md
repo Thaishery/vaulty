@@ -28,14 +28,14 @@ stmt.run(shortCode, originalUrl, function (err) { ... });
 La couche de présentation ne doit **jamais** manipuler directement la base de données ou connaître des détails d'infrastructure. Elle doit interagir uniquement avec les abstractions (Repository, Use Cases / Application Services).
 
 ### 2. Dépôt (Repository) Incomplet
-La classe [LinkRepositoryInterface](file:///home/guillaume/projects/perso/shorturl/src/Domain/links/LinkRepositoryInterface.js) et son implémentation [LinkRepository](file:///home/guillaume/projects/perso/shorturl/src/Infrastructure/Repository/LinkRepository.js) ne définissent que la méthode de récupération `retrieveLinkByShortCode`. Il manque la méthode de création/sauvegarde (ex: `save(link)`), ce qui a conduit au contournement mentionné ci-dessus.
+La classe [LinkRepositoryInterface](file:///home/guillaume/projects/perso/shorturl/src/Domain/Links/LinkRepositoryInterface.js) et son implémentation [LinkRepository](file:///home/guillaume/projects/perso/shorturl/src/Infrastructure/Repository/LinkRepository.js) ne définissent que la méthode de récupération `retrieveLinkByShortCode`. Il manque la méthode de création/sauvegarde (ex: `save(link)`), ce qui a conduit au contournement mentionné ci-dessus.
 
 ### 3. Absence de la Couche Application (Use Cases / Services)
 Actuellement, les routes de présentation gèrent directement l'orchestration des tâches (validation des entrées HTTP, génération de la clé, persistance et formatage de la réponse). 
 Dans un DDD propre, la logique métier/orchestration doit être encapsulée dans des **Cas d'Utilisation (Use Cases)** ou des **Services d'Application** (ex: `CreateShortLinkUseCase`, `GetLinkUseCase`). Les routes ne devraient faire que recevoir la requête, appeler le Use Case approprié et retourner la réponse.
 
 ### 4. Modèle de Domaine Anémique
-L'entité [Link](file:///home/guillaume/projects/perso/shorturl/src/Domain/links/Link.js) est actuellement une simple classe de données (DTO) avec des getters et setters publics non protégés :
+L'entité [Link](file:///home/guillaume/projects/perso/shorturl/src/Domain/Links/Link.js) est actuellement une simple classe de données (DTO) avec des getters et setters publics non protégés :
 ```javascript
 set shortCode(shortCode) { this.#shortCode = shortCode; }
 set originalUrl(originalUrl) { this.#originalUrl = originalUrl; }
@@ -84,7 +84,7 @@ graph TD
 - Supprimer les setters ou les rendre privés si l'entité est censée être immuable après sa création.
 
 ### Étape 3 : Compléter la persistance (Repository & SQL Helper)
-- Ajouter la méthode `async save(link)` dans [LinkRepositoryInterface](file:///home/guillaume/projects/perso/shorturl/src/Domain/links/LinkRepositoryInterface.js).
+- Ajouter la méthode `async save(link)` dans [LinkRepositoryInterface](file:///home/guillaume/projects/perso/shorturl/src/Domain/Links/LinkRepositoryInterface.js).
 - Implémenter cette méthode dans [LinkRepository](file:///home/guillaume/projects/perso/shorturl/src/Infrastructure/Repository/LinkRepository.js) (en utilisant SQLite et le cache).
 - Refactoriser [Sqlite3.js](file:///home/guillaume/projects/perso/shorturl/src/Infrastructure/Sqlite3.js) pour que toutes ses méthodes (dont `get`) retournent nativement des promesses, évitant ainsi le `new Promise` manuel et les callbacks dans le Repository.
 
@@ -127,7 +127,7 @@ Le projet est structuré selon une architecture en couches (`Domain`, `Applicati
 
 ### A. La Couche Domain (`src/Domain/links`)
 
-#### 1. L'Entité / Agrégat `Link` ([Link.js](file:///Users/guillaume/shorty/src/Domain/links/Link.js))
+#### 1. L'Entité / Agrégat `Link` ([Link.js](file:///Users/guillaume/shorty/src/Domain/Links/Link.js))
 * **Modèle Anémique** : L'entité `Link` ne contient aucun comportement ni validation d'invariants (par exemple, s'assurer que l'URL d'origine est valide et non vide). Elle sert de simple conteneur de données (structure de type "Anemic Domain Model").
 * **Mutabilité non contrôlée** : La présence de setters publics (`set shortCode`, `set originalUrl`) permet de modifier l'état d'un lien après sa création de manière arbitraire depuis n'importe quelle couche, ce qui viole l'encapsulation de l'agrégat.
 
@@ -135,11 +135,11 @@ Le projet est structuré selon une architecture en couches (`Domain`, `Applicati
 * Les concepts de **Code Court (Short Code)** et d'**URL d'Origine (Original URL)** sont représentés par des chaînes de caractères primitives (`string`).
 * En DDD, ces concepts devraient être modélisés comme des **Value Objects** (ex: `ShortCode`, `OriginalUrl`) encapsulant leurs propres règles de validation (format, longueur, protocoles supportés).
 
-#### 3. Le Service de Domaine `KeyGenerator` ([KeyGenerator.js](file:///Users/guillaume/shorty/src/Domain/links/KeyGenerator.js))
+#### 3. Le Service de Domaine `KeyGenerator` ([KeyGenerator.js](file:///Users/guillaume/shorty/src/Domain/Links/KeyGenerator.js))
 * La génération de clé est correctement identifiée comme un Domain Service ou un outil utilitaire du domaine.
 * Cependant, l'implémentation actuelle utilise `process.hrtime.bigint()`, créant un couplage fort avec le runtime Node.js directement dans le Domaine. Il serait préférable de définir une interface abstraite dans le Domaine et de laisser l'infrastructure fournir l'implémentation concrète, ou de s'assurer que le domaine ne dépend pas d'éléments environnementaux globaux si on souhaite le garder pur.
 
-#### 4. Interface du Repository `LinkRepositoryInterface` ([LinkRepositoryInterface.js](file:///Users/guillaume/shorty/src/Domain/links/LinkRepositoryInterface.js))
+#### 4. Interface du Repository `LinkRepositoryInterface` ([LinkRepositoryInterface.js](file:///Users/guillaume/shorty/src/Domain/Links/LinkRepositoryInterface.js))
 * **Excellente pratique** : L'interface du dépôt est définie au sein du Domaine sous forme d'une classe abstraite, garantissant l'indépendance du domaine vis-vis des détails d'implémentation de la persistance (principe de Dependency Inversion).
 
 ---
