@@ -1,6 +1,5 @@
 import http from 'http';
 import Router from 'node-router';
-import { Firewall } from './Firewall.js';
 
 function setSecurityHeaders(res) {
     res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
@@ -14,13 +13,11 @@ export class Server {
     #httpsServer;
     #router;
     #firewall;
-    #urlCache;
     #db;
 
-    constructor(urlCache, db) {
+    constructor(db, firewall) {
         this.#router = Router();
-        this.#firewall = new Firewall();
-        this.#urlCache = urlCache;
+        this.#firewall = firewall;
         this.#db = db;
         this.#httpsServer = http.createServer((req, res) => {
             if (this.#firewall.checkRateLimit(req.socket.remoteAddress || 'unknown')) {

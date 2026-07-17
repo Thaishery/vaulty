@@ -1,19 +1,16 @@
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import HttpResponder from '../Helpers/HttpResponder.js';
 import RedirectDto from '../Dto/RedirectDto.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class CodeRoute {
     static routePath = new RegExp(/^\/([a-z0-9]+)$/i);
     static routeMethod = "GET";
 
     #redirectUrlUseCase;
+    #instagramDiscordHtmlContent;
 
-    constructor(redirectUrlUseCase){
+    constructor(redirectUrlUseCase, instagramDiscordHtmlContent){
         this.#redirectUrlUseCase = redirectUrlUseCase;
+        this.#instagramDiscordHtmlContent = instagramDiscordHtmlContent;
     }
 
     async handle(req, res, next) {
@@ -26,8 +23,7 @@ export class CodeRoute {
             if (link) {
                 const originalUrl = link.originalUrl.value();
                 if (shouldRenderPreview) {
-                    let html = fs.readFileSync(path.join(__dirname, '../../html', 'instagram_discord.html'), 'utf8');
-                    html = html.replace(/{{original_url}}/g, originalUrl);
+                    const html = this.#instagramDiscordHtmlContent.replace(/{{original_url}}/g, originalUrl);
                     HttpResponder.sendHTML(res, 200, html);
                     return;
                 }

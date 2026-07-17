@@ -14,7 +14,6 @@ export default class Link {
         }
         this.#shortCode = shortCode;
         this.#originalUrl = originalUrl;
-        Object.freeze(this);
     }
 
     get shortCode() {
@@ -31,6 +30,8 @@ export default class Link {
     }
 
     static create(shortCode, originalUrl) {
-        return new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(originalUrl));
+        const shortCodeVo = shortCode instanceof ShortCodeVo ? shortCode : new ShortCodeVo(shortCode);
+        const originalUrlVo = originalUrl instanceof OriginalUrlVo ? originalUrl : new OriginalUrlVo(originalUrl);
+        return new Link(shortCodeVo, originalUrlVo);
     }
 }

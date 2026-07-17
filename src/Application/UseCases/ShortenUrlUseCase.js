@@ -14,8 +14,8 @@ export default class ShortenUrlUseCase {
      * @returns {Promise<Link>}
      */
     async execute(originalUrl) {
-        const shortCode = this.#keyGenerator.generate();
-        const link = Link.create(shortCode, originalUrl);
+        const shortCodeVo = this.#keyGenerator.generate();
+        const link = Link.create(shortCodeVo, originalUrl);
         await this.#linkRepository.save(link);
         return link;
     }

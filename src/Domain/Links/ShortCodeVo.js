@@ -10,7 +10,7 @@ export default class ShortCodeVo {
                 'validation'
             );
         }
-        if (!new RegExp(/^[a-zA-Z0-9]+$/).test(shortCode)) {
+        if (!/^[a-zA-Z0-9]+$/.test(shortCode)) {
             throw new DomainError(
                 'shortCode is composed of invalid characters.',
                 'SHORTCODE_INVALID_CHARACTERS',
