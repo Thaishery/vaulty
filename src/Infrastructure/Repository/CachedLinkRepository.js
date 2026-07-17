@@ -1,0 +1,32 @@
+import LinkRepositoryInterface from '../../Domain/Links/LinkRepositoryInterface.js';
+import Link from '../../Domain/Links/Link.js';
+import OriginalUrlVo from '../../Domain/Links/OriginalUrlVo.js';
+
+export default class CachedLinkRepository extends LinkRepositoryInterface {
+    #innerRepository;
+    #cache;
+
+    constructor(innerRepository, cache) {
+        super();
+        this.#innerRepository = innerRepository;
+        this.#cache = cache;
+    }
+
+    async retrieveLinkByShortCode(shortCodeVo) {
+        const shortCode = shortCodeVo.value();
+        if (this.#cache.has(shortCode)) {
+            return new Link(shortCodeVo, new OriginalUrlVo(this.#cache.get(shortCode)));
+        }
+
+        const link = await this.#innerRepository.retrieveLinkByShortCode(shortCodeVo);
+        if (link) {
+            this.#cache.set(shortCode, link.originalUrl.value());
+        }
+        return link;
+    }
+
+    async save(link) {
+        await this.#innerRepository.save(link);
+        this.#cache.set(link.shortCode.value(), link.originalUrl.value());
+    }
+}
