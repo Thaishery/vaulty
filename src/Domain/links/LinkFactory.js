@@ -16,7 +16,9 @@ export default class LinkFactory {
             return new Link(shortCodeVo, originalUrlVo);
         }catch(e){
             //TODO gestion erreur ici. 
+            console.log('Link Factory caught an error: ')
             console.log(e);
+            console.log('LinkFactory will rethrow the error')
             throw e;
         }
     }

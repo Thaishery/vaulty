@@ -36,23 +36,28 @@ export class ShortyRoute {
                 if (!body) {
                     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Missing request body.' });
                 }
-
-                const payload = JSON.parse(body);
+                let payload;
+                try{
+                    payload = JSON.parse(body);
+                } catch (e) {
+                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
+                }
                 const link = this.#linkFactory.create(payload.url);
                 try{
                     await this.#linkRepository.save(link);
-                    const proto = req.headers['x-forwarded-proto'] || 'http';
-                    const hostHeader = req.headers.host || "localhost:3000";
-                    const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
-                    return Server.sendJSON(res, 201, {
-                        shortCode: link.shortCode.value(),
-                        shortUrl: shortenedLink,
-                        originalUrl: link.originalUrl.value()
-                    });
                 } catch (e) {
                     return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
                 }
+                const proto = req.headers['x-forwarded-proto'] || 'http';
+                const hostHeader = req.headers.host || "localhost:3000";
+                const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
+                return Server.sendJSON(res, 201, {
+                    shortCode: link.shortCode.value(),
+                    shortUrl: shortenedLink,
+                    originalUrl: link.originalUrl.value()
+                });
             } catch (err) {
+                console.log('ShortyRoute caught an error: ')
                 console.log(err)
                 return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
             }

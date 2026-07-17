@@ -1,11 +1,21 @@
+import DomainError from "../Errors/DomainError.js";
+
 export default class ShortCodeVo {
     #shortCode;
     constructor(shortCode) {
         if (typeof shortCode !== 'string') {
-            throw new Error('shortCode must be a string');
+            throw new DomainError(
+                'shortCode must be a string.',
+                'SHORTCODE_INVALID',
+                'validation'
+            );
         }
-        if (shortCode && !shortCode.match(/^[a-zA-Z0-9]$/)) {
-            throw new Error('shortCode is composed of invalid characters.');
+        if (!new RegExp(/^[a-zA-Z0-9]+$/).test(shortCode)) {
+            throw new DomainError(
+                'shortCode is composed of invalid characters.',
+                'SHORTCODE_INVALID_CHARACTERS',
+                'validation'
+            );
         }
         this.#shortCode = shortCode;
         Object.freeze(this);
