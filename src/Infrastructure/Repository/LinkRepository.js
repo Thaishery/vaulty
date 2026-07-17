@@ -1,12 +1,7 @@
-<<<<<<< HEAD
-import LinkRepositoryInterface from '../../Domain/links/LinkRepositoryInterface.js';
-import Link from '../../Domain/links/Link.js';
-import ShortCodeVo from '../../Domain/links/ShortCodeVo.js';
-import OriginalUrlVo from '../../Domain/links/OriginalUrlVo.js';
-=======
 import LinkRepositoryInterface from '../../Domain/Links/LinkRepositoryInterface.js';
 import Link from '../../Domain/Links/Link.js';
->>>>>>> 5f5d5ae (links => Links)
+import ShortCodeVo from '../../Domain/Links/ShortCodeVo.js';
+import OriginalUrlVo from '../../Domain/Links/OriginalUrlVo.js';
 
 export default class LinkRepository extends LinkRepositoryInterface {
     #db;

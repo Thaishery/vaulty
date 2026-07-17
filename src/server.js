@@ -7,6 +7,8 @@ import { CodeRoute } from './Presentation/routes/CodeRoute.js';
 import { KeyGenerator } from './Domain/Links/KeyGenerator.js';
 import LinkFactory from './Domain/Links/LinkFactory.js';
 import LinkRepository from './Infrastructure/Repository/LinkRepository.js';
+import ShortenUrlUseCase from './Application/UseCases/ShortenUrlUseCase.js';
+import RedirectUrlUseCase from './Application/UseCases/RedirectUrlUseCase.js';
 
 const PORT = parseInt(process.env.PORT, 10);
 const HOST = process.env.HOST;
@@ -17,11 +19,11 @@ const urlCache = new Map();
 const keyGenerator = new KeyGenerator();
 const linkFactory = new LinkFactory(keyGenerator);
 const linkRepository = new LinkRepository(db, urlCache);
-const shortyRoute = new ShortyRoute(linkFactory, linkRepository);
-const codeRoute = new CodeRoute(linkRepository);
+const shortenUrlUseCase = new ShortenUrlUseCase(linkRepository, linkFactory);
+const redirectUrlUseCase = new RedirectUrlUseCase(linkRepository);
+const shortyRoute = new ShortyRoute(shortenUrlUseCase);
+const codeRoute = new CodeRoute(redirectUrlUseCase);
 
-//TODO : DDD speaking -> add Repository + Aggregate (link). Also add useCases.
-// useCase will be construct with the repository, route with the useCases. Pure DDD mockable. 
 const server = new Server(urlCache, db);
 server.addRoute(AssetsRoute.routeMethod, AssetsRoute.routePath, AssetsRoute.handle);
 server.addRoute(ShortyRoute.routeMethod, ShortyRoute.routePath, shortyRoute.handle.bind(shortyRoute));

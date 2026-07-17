@@ -10,30 +10,39 @@ export class CodeRoute {
     static routePath = new RegExp(/^\/([a-z0-9]+)$/i);
     static routeMethod = "GET";
 
-    #linkRepository;
+    #redirectUrlUseCase;
 
-    constructor(linkRepository){
-        this.#linkRepository = linkRepository;
+    constructor(redirectUrlUseCase){
+        this.#redirectUrlUseCase = redirectUrlUseCase;
     }
 
     async handle(req, res, next) {
-        const shortCode = req.params.code;
-        const link = await this.#linkRepository.retrieveLinkByShortCode(shortCode);
-        const originalUrl = link?.originalUrl.value();
+        try {
+            const shortCode = req.params.code;
+            const userAgent = req.headers['user-agent'] || '';
 
-        if (originalUrl) {
-              const userAgent = req.headers['user-agent'] || '';
-              if (originalUrl.includes("//www.instagram.com/") && userAgent.includes("Discordbot")) {
-                let html = fs.readFileSync(path.join(__dirname, 'html', 'instagram_discord.html'), 'utf8');
-                html = html.replace(/{{original_url}}/g, originalUrl);
-                Server.sendHTML(res, 200, html);
+            const { link, shouldRenderPreview } = await this.#redirectUrlUseCase.execute(shortCode, userAgent);
+
+            if (link) {
+                const originalUrl = link.originalUrl.value();
+                if (shouldRenderPreview) {
+                    let html = fs.readFileSync(path.join(__dirname, '../../html', 'instagram_discord.html'), 'utf8');
+                    html = html.replace(/{{original_url}}/g, originalUrl);
+                    Server.sendHTML(res, 200, html);
+                    return;
+                }
+                const redirectDto = new RedirectDto(originalUrl, 308, { 'Cache-Control': 'public, max-age=31536000, immutable' });
+                Server.sendRedirect(res, redirectDto);
                 return;
-              }
-              const redirectDto = new RedirectDto(originalUrl, 308, {'Cache-Control': 'public, max-age=31536000, immutable'});
-              Server.sendRedirect(res, redirectDto)
-              return;
-        }
+            }
 
-        Server.sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
+            Server.sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
+        } catch (err) {
+            console.error('CodeRoute caught an error:', err);
+            if (err.name === 'DomainError') {
+                return Server.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
+            }
+            return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to process redirection.' });
+        }
     }
 }

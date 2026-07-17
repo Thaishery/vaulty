@@ -1,21 +1,13 @@
 import { Server } from "../../../Infrastructure/Server.js";
-<<<<<<< HEAD
-=======
-import { KeyGenerator } from "../../../Domain/Links/KeyGenerator.js";
-import LinkFactory from "../../../Domain/Links/LinkFactory.js";
-import LinkRepository from "../../../Infrastructure/Repository/LinkRepository.js";
->>>>>>> 5f5d5ae (links => Links)
 
 export class ShortyRoute {
     static routePath = "/api/shorty";
     static routeMethod = "POST";
 
-    #linkFactory;
-    #linkRepository;
+    #shortenUrlUseCase;
 
-    constructor(linkFactory,linkRepository){
-        this.#linkFactory = linkFactory;
-        this.#linkRepository = linkRepository;
+    constructor(shortenUrlUseCase) {
+        this.#shortenUrlUseCase = shortenUrlUseCase;
     }
 
     async handle(req, res, next) {
@@ -43,17 +35,14 @@ export class ShortyRoute {
                     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Missing request body.' });
                 }
                 let payload;
-                try{
+                try {
                     payload = JSON.parse(body);
                 } catch (e) {
                     return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
                 }
-                const link = this.#linkFactory.create(payload.url);
-                try{
-                    await this.#linkRepository.save(link);
-                } catch (e) {
-                    return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
-                }
+
+                const link = await this.#shortenUrlUseCase.execute(payload.url);
+
                 const proto = req.headers['x-forwarded-proto'] || 'http';
                 const hostHeader = req.headers.host || "localhost:3000";
                 const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
@@ -63,9 +52,11 @@ export class ShortyRoute {
                     originalUrl: link.originalUrl.value()
                 });
             } catch (err) {
-                console.log('ShortyRoute caught an error: ')
-                console.log(err)
-                return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
+                console.error('ShortyRoute caught an error:', err);
+                if (err.name === 'DomainError') {
+                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
+                }
+                return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
             }
         });
         return;
