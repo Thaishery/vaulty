@@ -27,5 +27,5 @@ EXPOSE 3000
 # Run the application under a non-privileged system user for security
 USER node
 
-# Define the command to run the app
-CMD [ "node", "server.js" ]
+# Define the command to run the app (migration then server)
+CMD node Infrastructure/migrations/init.js && node server.js

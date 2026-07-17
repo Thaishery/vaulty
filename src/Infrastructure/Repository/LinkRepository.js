@@ -5,18 +5,17 @@ import OriginalUrlVo from '../../Domain/Links/OriginalUrlVo.js';
 
 export default class LinkRepository extends LinkRepositoryInterface {
     #db;
-    #cache;
 
-    constructor(db, cache) {
+    constructor(db) {
         super();
         this.#db = db;
-        this.#cache = cache;
     }
 
-    async retrieveLinkByShortCode(shortCode) {
-        if (this.#cache.has(shortCode)) {
-            return new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(this.#cache.get(shortCode)));
+    async retrieveLinkByShortCode(shortCodeVo) {
+        if (!(shortCodeVo instanceof ShortCodeVo)) {
+            throw new Error('shortCodeVo must be a ShortCodeVo instance');
         }
+        const shortCode = shortCodeVo.value();
 
         return new Promise((resolve, reject) => {
             this.#db.get(`SELECT original_url FROM urls WHERE short_code = ?`, [shortCode], (err, row) => {
@@ -26,8 +25,7 @@ export default class LinkRepository extends LinkRepositoryInterface {
                 if (!row) {
                     return resolve(null);
                 }
-                this.#cache.set(shortCode, row.original_url);
-                resolve(new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(row.original_url)));
+                resolve(new Link(shortCodeVo, new OriginalUrlVo(row.original_url)));
             });
         });
     }
@@ -39,7 +37,6 @@ export default class LinkRepository extends LinkRepositoryInterface {
                 if (err) {
                     return reject(err);
                 }
-                this.#cache.set(link.shortCode.value(), link.originalUrl.value());
                 resolve();
             });
             stmt.finalize();

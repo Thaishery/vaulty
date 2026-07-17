@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "db:migrate": "node src/Infrastructure/migrations/init.js"
   },
   "dependencies": {
     "sqlite3": "^6.0.1",

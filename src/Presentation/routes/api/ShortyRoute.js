@@ -1,4 +1,4 @@
-import { Server } from "../../../Infrastructure/Server.js";
+import HttpResponder from "../../Helpers/HttpResponder.js";
 
 export class ShortyRoute {
     static routePath = "/api/shorty";
@@ -32,13 +32,13 @@ export class ShortyRoute {
 
             try {
                 if (!body) {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Missing request body.' });
+                    return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Missing request body.' });
                 }
                 let payload;
                 try {
                     payload = JSON.parse(body);
                 } catch (e) {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
+                    return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
                 }
 
                 const link = await this.#shortenUrlUseCase.execute(payload.url);
@@ -46,7 +46,7 @@ export class ShortyRoute {
                 const proto = req.headers['x-forwarded-proto'] || 'http';
                 const hostHeader = req.headers.host || "localhost:3000";
                 const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
-                return Server.sendJSON(res, 201, {
+                return HttpResponder.sendJSON(res, 201, {
                     shortCode: link.shortCode.value(),
                     shortUrl: shortenedLink,
                     originalUrl: link.originalUrl.value()
@@ -54,9 +54,9 @@ export class ShortyRoute {
             } catch (err) {
                 console.error('ShortyRoute caught an error:', err);
                 if (err.name === 'DomainError') {
-                    return Server.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
+                    return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
                 }
-                return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
+                return HttpResponder.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
             }
         });
         return;

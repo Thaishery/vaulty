@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { Server } from '../../Infrastructure/Server.js';
+import HttpResponder from '../Helpers/HttpResponder.js';
 
 const PORT = parseInt(process.env.PORT, 10);
 const HOST = process.env.HOST;
@@ -19,7 +19,7 @@ export class AssetsRoute {
         try {
             safeSuffix = decodeURIComponent(pathname.substring(8)); // '/assets/'.length is 8
         } catch (e) {
-            return Server.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL encoding' });
+            return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid URL encoding' });
         }
     
         const assetsDir = path.join(__dirname, relativeAssetPath);
@@ -27,12 +27,12 @@ export class AssetsRoute {
     
         const isSafe = filePath.startsWith(assetsDir + path.sep) || filePath === assetsDir;
         if (!isSafe) {
-            return Server.sendJSON(res, 403, { error: 'Forbidden', message: 'Access denied' });
+            return HttpResponder.sendJSON(res, 403, { error: 'Forbidden', message: 'Access denied' });
         }
     
         fs.stat(filePath, (err, stats) => {
             if (err || !stats.isFile()) {
-            return Server.sendJSON(res, 404, { error: 'Not Found', message: 'Asset not found' });
+            return HttpResponder.sendJSON(res, 404, { error: 'Not Found', message: 'Asset not found' });
             }
     
             const ext = path.extname(filePath).toLowerCase();
@@ -62,7 +62,7 @@ export class AssetsRoute {
             stream.on('error', (streamErr) => {
             console.error('Error reading asset file:', streamErr.message);
             if (!res.headersSent) {
-                Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Could not serve asset' });
+                HttpResponder.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Could not serve asset' });
             }
             });
             return stream.pipe(res);

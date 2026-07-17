@@ -24,4 +24,9 @@ export default class ShortCodeVo {
     value() {
         return this.#shortCode;
     }
+
+    equals(other) {
+        if (!(other instanceof ShortCodeVo)) return false;
+        return this.value() === other.value();
+    }
 }

@@ -1,6 +1,7 @@
 import DomainError from "../Errors/DomainError.js";
 
 export default class OriginalUrlVo {
+    #originalUrl;
     constructor(originalUrl) {
         if (!originalUrl || typeof originalUrl !== 'string') {
             throw new DomainError(
@@ -33,11 +34,16 @@ export default class OriginalUrlVo {
                 'validation'
             );
         }
-        this.originalUrl = originalUrl;
+        this.#originalUrl = originalUrl;
         Object.freeze(this);
     }
 
     value() {
-        return this.originalUrl;
+        return this.#originalUrl;
+    }
+
+    equals(other) {
+        if (!(other instanceof OriginalUrlVo)) return false;
+        return this.value() === other.value();
     }
 }

@@ -1,4 +1,6 @@
-export class KeyGenerator {
+import KeyGeneratorInterface from "../../Domain/Links/KeyGeneratorInterface.js";
+
+export class TimeBasedKeyGenerator extends KeyGeneratorInterface {
     #counter = 0;
 
     generate() {

@@ -25,9 +25,12 @@ export default class Link {
         return this.#originalUrl;
     }
 
-    //TODO: 
-    // equals(other) {
-    //     if (!(other instanceof Link)) return false;
-    //     return this.#shortCode.equals(other.shortCode) && this.#originalUrl.equals(other.originalUrl);
-    // }
+    equals(other) {
+        if (!(other instanceof Link)) return false;
+        return this.#shortCode.value() === other.shortCode.value();
+    }
+
+    static create(shortCode, originalUrl) {
+        return new Link(new ShortCodeVo(shortCode), new OriginalUrlVo(originalUrl));
+    }
 }

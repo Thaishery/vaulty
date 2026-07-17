@@ -2,6 +2,14 @@ import http from 'http';
 import Router from 'node-router';
 import { Firewall } from './Firewall.js';
 
+function setSecurityHeaders(res) {
+    res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Access-Control-Allow-Origin', 'null');
+}
+
 export class Server {
     #httpsServer;
     #router;
@@ -16,13 +24,14 @@ export class Server {
         this.#db = db;
         this.#httpsServer = http.createServer((req, res) => {
             if (this.#firewall.checkRateLimit(req.socket.remoteAddress || 'unknown')) {
-                Server.setSecurityHeaders(res);
-                Server.sendJSON(res, 429, { error: 'Too Many Requests', message: 'Rate limit exceeded. Please try again later.' });
+                setSecurityHeaders(res);
+                res.writeHead(429, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Too Many Requests', message: 'Rate limit exceeded. Please try again later.' }));
                 return;
             }
             this.#router(req, res, (err) => {
                 if (err) {
-                    Server.setSecurityHeaders(res);
+                    setSecurityHeaders(res);
                     res.writeHead(500, { 'Content-Type': 'text/plain' });
                     res.end('Internal Server Error');
                 }
@@ -31,22 +40,22 @@ export class Server {
     }
 
     addRoute(method, route, handler) {
-    if (route instanceof RegExp) {
-        this.#router.push(method, (req, res, next) => {
-            const match = req.path.match(route);
-            if (match) {
-                req.params = { code: match[1] };
-                handler(req, res, next, this.#urlCache, this.#db);
-            } else {
-                next();
-            }
-        });
-    } else {
-        this.#router.push(method, route, (req, res, next) => {
-            handler(req, res, next, this.#urlCache, this.#db);
-        });
+        if (route instanceof RegExp) {
+            this.#router.push(method, (req, res, next) => {
+                const match = req.path.match(route);
+                if (match) {
+                    req.params = { code: match[1] };
+                    handler(req, res, next);
+                } else {
+                    next();
+                }
+            });
+        } else {
+            this.#router.push(method, route, (req, res, next) => {
+                handler(req, res, next);
+            });
+        }
     }
-}
 
     start(port, hostname) {
         this.#httpsServer.listen(port, hostname, () => {
@@ -66,31 +75,5 @@ export class Server {
                 process.exit(1);
             }
         });
-    }
-
-    static sendJSON(res, statusCode, data) {
-        this.setSecurityHeaders(res);
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(data));
-    }
-
-    static sendRedirect(res, redirectDto) {
-        this.setSecurityHeaders(res);
-        res.writeHead(redirectDto.statusCode, redirectDto.headers);
-        res.end();
-    }
-
-    static sendHTML(res, statusCode, html) {
-        this.setSecurityHeaders(res);
-        res.writeHead(statusCode, { 'Content-Type': 'text/html' });
-        res.end(html);
-    }
-
-    static setSecurityHeaders(res, cspHeader = "default-src 'none'; frame-ancestors 'none';") {
-        res.setHeader('Content-Security-Policy', cspHeader);
-        res.setHeader('X-Frame-Options', 'DENY');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Referrer-Policy', 'no-referrer');
-        res.setHeader('Access-Control-Allow-Origin', 'null');
     }
 }

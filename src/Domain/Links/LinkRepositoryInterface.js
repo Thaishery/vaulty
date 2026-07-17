@@ -1,6 +1,6 @@
 export default class LinkRepositoryInterface {
     /**
-     * @param {string} shortCode
+     * @param {ShortCodeVo} shortCode
      * @returns {Promise<Link|null>}
      */
     async retrieveLinkByShortCode(shortCode) {
@@ -9,8 +9,6 @@ export default class LinkRepositoryInterface {
 
     /**
      * @param {Link} link
-     * @throws DatabaseError
-     * @throws CacheError
      * @throws Error
      */
     async save(link) {

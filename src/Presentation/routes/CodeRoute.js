@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { Server } from '../../Infrastructure/Server.js';
-import RedirectDto from '../../Infrastructure/Dto/RedirectDto.js';
+import HttpResponder from '../Helpers/HttpResponder.js';
+import RedirectDto from '../Dto/RedirectDto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,21 +28,21 @@ export class CodeRoute {
                 if (shouldRenderPreview) {
                     let html = fs.readFileSync(path.join(__dirname, '../../html', 'instagram_discord.html'), 'utf8');
                     html = html.replace(/{{original_url}}/g, originalUrl);
-                    Server.sendHTML(res, 200, html);
+                    HttpResponder.sendHTML(res, 200, html);
                     return;
                 }
                 const redirectDto = new RedirectDto(originalUrl, 308, { 'Cache-Control': 'public, max-age=31536000, immutable' });
-                Server.sendRedirect(res, redirectDto);
+                HttpResponder.sendRedirect(res, redirectDto);
                 return;
             }
 
-            Server.sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
+            HttpResponder.sendJSON(res, 404, { error: 'Not Found', message: 'Shortened URL not found or expired.' });
         } catch (err) {
             console.error('CodeRoute caught an error:', err);
             if (err.name === 'DomainError') {
-                return Server.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
+                return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
             }
-            return Server.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to process redirection.' });
+            return HttpResponder.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to process redirection.' });
         }
     }
 }

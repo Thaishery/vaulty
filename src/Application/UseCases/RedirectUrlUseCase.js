@@ -1,5 +1,6 @@
 import ShortCodeVo from '../../Domain/Links/ShortCodeVo.js';
 import RedirectionPolicy from '../../Domain/Links/RedirectionPolicy.js';
+import ClientAgentVo from '../../Domain/Links/ClientAgentVo.js';
 
 export default class RedirectUrlUseCase {
     #linkRepository;
@@ -16,7 +17,8 @@ export default class RedirectUrlUseCase {
      */
     async execute(shortCodeStr, userAgent) {
         const shortCodeVo = new ShortCodeVo(shortCodeStr);
-        const link = await this.#linkRepository.retrieveLinkByShortCode(shortCodeVo.value());
+        const clientAgentVo = new ClientAgentVo(userAgent);
+        const link = await this.#linkRepository.retrieveLinkByShortCode(shortCodeVo);
         
         if (!link) {
             return { link: null, shouldRenderPreview: false };
@@ -24,7 +26,7 @@ export default class RedirectUrlUseCase {
 
         const shouldRenderPreview = RedirectionPolicy.shouldRenderInstagramDiscordPreview(
             link.originalUrl,
-            userAgent
+            clientAgentVo
         );
 
         return { link, shouldRenderPreview };

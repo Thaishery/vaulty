@@ -4,28 +4,24 @@ import path from "path";
 
 export default class Sqlite3 {
     #db;
+    #dbPath;
 
     constructor(DB_PATH) {
         if (!fs.existsSync(path.dirname(DB_PATH))) {
             fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
         }
+        this.#dbPath = DB_PATH;
+    }
 
-        this.#db = new sqlite3.Database(DB_PATH, (err) => {
-            if (err) {
-                console.error('Error opening SQLite database:', err.message);
-                process.exit(1);
-            }
-            console.log(`Connected to SQLite database at: ${DB_PATH}`);
-            this.#db.run(`
-                CREATE TABLE IF NOT EXISTS urls (
-                    short_code TEXT PRIMARY KEY,
-                    original_url TEXT NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            `, (err) => {
+    connect() {
+        return new Promise((resolve, reject) => {
+            this.#db = new sqlite3.Database(this.#dbPath, (err) => {
                 if (err) {
-                    console.error('Error creating urls table:', err.message);
-                    process.exit(1);
+                    console.error('Error opening SQLite database:', err.message);
+                    reject(err);
+                } else {
+                    console.log(`Connected to SQLite database at: ${this.#dbPath}`);
+                    resolve();
                 }
             });
         });

@@ -1,10 +1,12 @@
+import Link from '../../Domain/Links/Link.js';
+
 export default class ShortenUrlUseCase {
     #linkRepository;
-    #linkFactory;
+    #keyGenerator;
 
-    constructor(linkRepository, linkFactory) {
+    constructor(linkRepository, keyGenerator) {
         this.#linkRepository = linkRepository;
-        this.#linkFactory = linkFactory;
+        this.#keyGenerator = keyGenerator;
     }
 
     /**
@@ -12,7 +14,8 @@ export default class ShortenUrlUseCase {
      * @returns {Promise<Link>}
      */
     async execute(originalUrl) {
-        const link = this.#linkFactory.create(originalUrl);
+        const shortCode = this.#keyGenerator.generate();
+        const link = Link.create(shortCode, originalUrl);
         await this.#linkRepository.save(link);
         return link;
     }
