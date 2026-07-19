@@ -3,7 +3,7 @@ const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute
 
 export class Firewall {
     #rateLimits = new Map();
-    //TODO : policies? 
+
     checkRateLimit(ip) {
         const now = Date.now();
         if (!this.#rateLimits.has(ip)) {
