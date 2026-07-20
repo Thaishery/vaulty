@@ -3,7 +3,7 @@
 **Shorty** est un raccourcisseur d'URL simple, sécurisé et performant écrit en Node.js natif (sans framework HTTP lourd comme Express) avec une base de données SQLite.
 
 Le projet propose :
-- Une interface web.
+- Une interface web
 - Génération de QR Codes pour télécharger ou partager les liens raccourcis.
 - Un Rate Limiter (pare-feu) intégré pour protéger l'application contre les abus. (voir Firewall.js)
 - En cas de détection d'un Agent Utilisateur Discord et détection d'Instagram, affichage d'une prévisualisation du lien (voir src/Domain/Links/RedirectionPolicy.js & src/Presentation/routes/CodeRoute.js).
