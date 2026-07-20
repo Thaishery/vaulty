@@ -6,11 +6,11 @@ export class CodeRoute {
     static routeMethod = "GET";
 
     #redirectUrlUseCase;
-    #instagramDiscordHtmlContent;
+    #previewHtmlContent;
 
-    constructor(redirectUrlUseCase, instagramDiscordHtmlContent){
+    constructor(redirectUrlUseCase, previewHtmlContent){
         this.#redirectUrlUseCase = redirectUrlUseCase;
-        this.#instagramDiscordHtmlContent = instagramDiscordHtmlContent;
+        this.#previewHtmlContent = previewHtmlContent;
     }
 
     async handle(req, res, next) {
@@ -23,7 +23,22 @@ export class CodeRoute {
             if (link) {
                 const originalUrl = link.originalUrl.value();
                 if (shouldRenderPreview) {
-                    const html = this.#instagramDiscordHtmlContent.replace(/{{original_url}}/g, originalUrl);
+                    const title = link.ogTitle || "Url raccourci par shorty";
+                    const description = link.ogDescription || "Merci d'utiliser shorty pour raccourcir vos url. plus de detail ici : https://github.com/guillaume/shorty";
+
+                    let imageUrl = link.ogImageUrl;
+                    if (!imageUrl) {
+                        const proto = req.headers['x-forwarded-proto'] || 'http';
+                        const hostHeader = req.headers.host || "localhost:3000";
+                        imageUrl = `${proto}://${hostHeader}/assets/shorty.png`;
+                    }
+
+                    const html = this.#previewHtmlContent
+                        .replace(/{{title}}/g, title)
+                        .replace(/{{description}}/g, description)
+                        .replace(/{{image_url}}/g, imageUrl)
+                        .replace(/{{original_url}}/g, originalUrl);
+
                     HttpResponder.sendHTML(res, 200, html);
                     return;
                 }

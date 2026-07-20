@@ -24,8 +24,8 @@ export default class RedirectUrlUseCase {
             return { link: null, shouldRenderPreview: false };
         }
 
-        const shouldRenderPreview = RedirectionPolicy.shouldRenderInstagramDiscordPreview(
-            link.originalUrl,
+        const shouldRenderPreview = RedirectionPolicy.shouldRenderPreview(
+            link,
             clientAgentVo
         );
 

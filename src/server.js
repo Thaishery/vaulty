@@ -22,7 +22,7 @@ const DB_PATH = process.env.DB_PATH;
 
 // Pre-load static HTML templates to avoid blocking I/O on request handling
 const indexHtmlContent = fs.readFileSync(path.join(__dirname, 'html', 'index.html'), 'utf8');
-const instagramDiscordHtmlContent = fs.readFileSync(path.join(__dirname, 'html', 'instagram_discord.html'), 'utf8');
+const previewHtmlContent = fs.readFileSync(path.join(__dirname, 'html', 'preview.html'), 'utf8');
 
 const db = new Sqlite3(DB_PATH);
 await db.connect();
@@ -35,7 +35,7 @@ const shortenUrlUseCase = new ShortenUrlUseCase(linkRepository, keyGenerator);
 const redirectUrlUseCase = new RedirectUrlUseCase(linkRepository);
 
 const shortyRoute = new ShortyRoute(shortenUrlUseCase);
-const codeRoute = new CodeRoute(redirectUrlUseCase, instagramDiscordHtmlContent);
+const codeRoute = new CodeRoute(redirectUrlUseCase, previewHtmlContent);
 const homeRoute = new HomeRoute(indexHtmlContent);
 
 const server = new Server(db, firewall);

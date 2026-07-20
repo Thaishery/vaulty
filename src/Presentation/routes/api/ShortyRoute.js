@@ -41,7 +41,12 @@ export class ShortyRoute {
                     return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
                 }
 
-                const link = await this.#shortenUrlUseCase.execute(payload.url);
+                const link = await this.#shortenUrlUseCase.execute(
+                    payload.url,
+                    payload.ogTitle || null,
+                    payload.ogDescription || null,
+                    payload.ogImageUrl || null
+                );
 
                 const proto = req.headers['x-forwarded-proto'] || 'http';
                 const hostHeader = req.headers.host || "localhost:3000";
@@ -49,7 +54,10 @@ export class ShortyRoute {
                 return HttpResponder.sendJSON(res, 201, {
                     shortCode: link.shortCode.value(),
                     shortUrl: shortenedLink,
-                    originalUrl: link.originalUrl.value()
+                    originalUrl: link.originalUrl.value(),
+                    ogTitle: link.ogTitle,
+                    ogDescription: link.ogDescription,
+                    ogImageUrl: link.ogImageUrl
                 });
             } catch (err) {
                 console.error('ShortyRoute caught an error:', err);

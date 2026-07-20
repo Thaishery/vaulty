@@ -15,18 +15,35 @@ export default class CachedLinkRepository extends LinkRepositoryInterface {
     async retrieveLinkByShortCode(shortCodeVo) {
         const shortCode = shortCodeVo.value();
         if (this.#cache.has(shortCode)) {
-            return new Link(shortCodeVo, new OriginalUrlVo(this.#cache.get(shortCode)));
+            const cached = this.#cache.get(shortCode);
+            return new Link(
+                shortCodeVo,
+                new OriginalUrlVo(cached.originalUrl),
+                cached.ogTitle,
+                cached.ogDescription,
+                cached.ogImageUrl
+            );
         }
 
         const link = await this.#innerRepository.retrieveLinkByShortCode(shortCodeVo);
         if (link) {
-            this.#cache.set(shortCode, link.originalUrl.value());
+            this.#cache.set(shortCode, {
+                originalUrl: link.originalUrl.value(),
+                ogTitle: link.ogTitle,
+                ogDescription: link.ogDescription,
+                ogImageUrl: link.ogImageUrl
+            });
         }
         return link;
     }
 
     async save(link) {
         await this.#innerRepository.save(link);
-        this.#cache.set(link.shortCode.value(), link.originalUrl.value());
+        this.#cache.set(link.shortCode.value(), {
+            originalUrl: link.originalUrl.value(),
+            ogTitle: link.ogTitle,
+            ogDescription: link.ogDescription,
+            ogImageUrl: link.ogImageUrl
+        });
     }
 }

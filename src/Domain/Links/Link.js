@@ -4,8 +4,11 @@ import OriginalUrlVo from "./OriginalUrlVo.js";
 export default class Link {
     #shortCode
     #originalUrl
+    #ogTitle
+    #ogDescription
+    #ogImageUrl
 
-    constructor(shortCode, originalUrl) {
+    constructor(shortCode, originalUrl, ogTitle = null, ogDescription = null, ogImageUrl = null) {
         if (!(shortCode instanceof ShortCodeVo)) {
             throw new Error('shortCode must be a ShortCodeVo');
         }
@@ -14,6 +17,9 @@ export default class Link {
         }
         this.#shortCode = shortCode;
         this.#originalUrl = originalUrl;
+        this.#ogTitle = ogTitle;
+        this.#ogDescription = ogDescription;
+        this.#ogImageUrl = ogImageUrl;
     }
 
     get shortCode() {
@@ -24,14 +30,26 @@ export default class Link {
         return this.#originalUrl;
     }
 
+    get ogTitle() {
+        return this.#ogTitle;
+    }
+
+    get ogDescription() {
+        return this.#ogDescription;
+    }
+
+    get ogImageUrl() {
+        return this.#ogImageUrl;
+    }
+
     equals(other) {
         if (!(other instanceof Link)) return false;
         return this.#shortCode.value() === other.shortCode.value();
     }
 
-    static create(shortCode, originalUrl) {
+    static create(shortCode, originalUrl, ogTitle = null, ogDescription = null, ogImageUrl = null) {
         const shortCodeVo = shortCode instanceof ShortCodeVo ? shortCode : new ShortCodeVo(shortCode);
         const originalUrlVo = originalUrl instanceof OriginalUrlVo ? originalUrl : new OriginalUrlVo(originalUrl);
-        return new Link(shortCodeVo, originalUrlVo);
+        return new Link(shortCodeVo, originalUrlVo, ogTitle, ogDescription, ogImageUrl);
     }
 }
