@@ -24,7 +24,7 @@ export class CodeRoute {
                 const originalUrl = link.originalUrl.value();
                 if (shouldRenderPreview) {
                     const title = link.ogTitle || "Url raccourci par shorty";
-                    const description = link.ogDescription || "Merci d'utiliser shorty pour raccourcir vos url. plus de detail ici : https://github.com/guillaume/shorty";
+                    const description = link.ogDescription || "Merci d'utiliser shorty pour raccourcir vos url. plus de detail ici : https://github.com/Thaishery/shorty";
 
                     let imageUrl = link.ogImageUrl;
                     if (!imageUrl) {
