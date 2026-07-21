@@ -1,4 +1,8 @@
 (function () {
+    // Preload logo image for QR Code personalization
+    const logoImage = new Image();
+    logoImage.src = '/assets/shorty.png';
+
     const form = document.getElementById('shorten-form');
     const urlInput = document.getElementById('url-input');
     const submitBtn = document.getElementById('submit-btn');
@@ -88,7 +92,7 @@
             // Display shortened URL
             resultUrl.textContent = data.shortUrl;
 
-            // Generate QR Code
+            // Generate QR Code with high error correction level to support logo overlay
             if (!qrcodeInstance) {
                 qrcodeInstance = new QRCode(qrcodeContainer, {
                     text: data.shortUrl,
@@ -96,32 +100,24 @@
                     height: 256,
                     colorDark: "#0f172a",
                     colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.M
+                    correctLevel: QRCode.CorrectLevel.H
                 });
             } else {
                 qrcodeInstance.clear();
                 qrcodeInstance.makeCode(data.shortUrl);
             }
 
-            // Setup QR Code download link (extract data URI from generated canvas/img)
+            // Draw the logo and setup download link once the library completes rendering
             setTimeout(() => {
-                const canvas = qrcodeContainer.querySelector('canvas');
-                const img = qrcodeContainer.querySelector('img');
-                let qrDataUrl = '';
-
-                if (canvas) {
-                    qrDataUrl = canvas.toDataURL('image/png');
-                } else if (img && img.src) {
-                    qrDataUrl = img.src;
-                }
-
-                if (qrDataUrl) {
-                    downloadQrBtn.href = qrDataUrl;
-                    downloadQrBtn.style.display = 'inline-flex';
+                if (logoImage.complete) {
+                    personalizeQrCode();
                 } else {
-                    downloadQrBtn.style.display = 'none';
+                    logoImage.onload = () => {
+                        personalizeQrCode();
+                        logoImage.onload = null;
+                    };
                 }
-            }, 100);
+            }, 150);
 
             resultSection.style.display = 'block';
             resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -161,5 +157,75 @@
     function hideError() {
         errorMsg.style.display = 'none';
         errorMsg.textContent = '';
+    }
+
+    // Helper to draw a rounded rectangle on a 2D canvas context
+    function drawCustomRoundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, width, height, radius);
+        } else {
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+    }
+
+    // Customizes the generated QR Code canvas by adding a rounded logo at the center
+    function personalizeQrCode() {
+        const canvas = qrcodeContainer.querySelector('canvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const size = canvas.width;
+        
+        // Define logo card dimensions (22% of QR code width)
+        const logoSize = Math.round(size * 0.22);
+        const x = (size - logoSize) / 2;
+        const y = (size - logoSize) / 2;
+        const borderRadius = Math.round(logoSize * 0.25); // 25% corner radius for squircle card
+
+        ctx.save();
+
+        // 1. Draw the rounded white card background
+        drawCustomRoundRect(ctx, x, y, logoSize, logoSize, borderRadius);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // 2. Draw a subtle border around the white card
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 3. Draw the logo with a small padding and matching border-radius clip
+        const padding = Math.round(logoSize * 0.08);
+        const innerSize = logoSize - (padding * 2);
+        const lx = x + padding;
+        const ly = y + padding;
+        const innerBorderRadius = Math.max(0, borderRadius - padding);
+
+        drawCustomRoundRect(ctx, lx, ly, innerSize, innerSize, innerBorderRadius);
+        ctx.clip();
+
+        ctx.drawImage(logoImage, lx, ly, innerSize, innerSize);
+        ctx.restore();
+
+        // 4. Update the img element source and download link
+        const img = qrcodeContainer.querySelector('img');
+        const qrDataUrl = canvas.toDataURL('image/png');
+        if (img) {
+            img.src = qrDataUrl;
+        }
+        if (downloadQrBtn) {
+            downloadQrBtn.href = qrDataUrl;
+            downloadQrBtn.style.display = 'inline-flex';
+        }
     }
 })();
