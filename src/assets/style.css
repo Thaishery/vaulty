@@ -47,9 +47,89 @@ body {
 
 .shorty__footer {
     margin-top: 2rem;
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.shorty__footer-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.shorty__footer-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: color 0.2s ease;
+}
+
+.shorty__footer-link:hover {
+    color: #a5b4fc;
+}
+
+.shorty__github-icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.shorty__footer-separator {
+    color: #475569;
+}
+
+.shorty__footer-copy {
     font-size: 0.75rem;
     color: #4b5563;
-    text-align: center;
+}
+
+/* Security Info Banner */
+.security-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.security-info__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b5cf6;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.security-info__text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.security-info__link {
+    color: #a5b4fc;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.security-info__link:hover {
+    color: #c084fc;
 }
 
 /* Card Component */
