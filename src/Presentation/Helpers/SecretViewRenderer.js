@@ -31,6 +31,24 @@ export class SecretViewRenderer {
     }
 
     /**
+     * Renders HTML preview for bots and crawlers without exposing or destroying secret.
+     * @param {string} template 
+     * @param {string} nonce 
+     * @returns {string} Renders HTML string
+     */
+    static renderBotPreview(template, nonce) {
+        let html = template.replace(/{{nonce}}/g, nonce);
+
+        return html
+            .replace(/{{title}}/g, "Aperçu du lien Vaulty")
+            .replace(/{{message}}/g, "Ce lien contient un secret éphémère Vaulty. Pour des raisons de sécurité, les robots et crawlers ne peuvent pas consulter ni détruire le secret. Ouvrez ce lien dans un navigateur pour l'afficher.")
+            .replace(/{{secret_content}}/g, "")
+            .replace(/{{secret_display_style}}/g, "none")
+            .replace(/{{secret_display_class}}/g, "")
+            .replace(/{{status_class}}/g, "alert--info");
+    }
+
+    /**
      * Escapes unsafe characters for HTML display.
      * @param {string} str 
      * @returns {string}
