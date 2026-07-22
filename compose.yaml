@@ -1,14 +1,14 @@
 services:
-  shorty:
+  vaulty:
     build: .
-    container_name: shorty-app
+    container_name: vaulty-app
     ports:
-      - "3000:3000"
+      - "3443:3000"
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=3000
-      - DB_PATH=/usr/src/app/data/shorty.db
+      - DB_PATH=/usr/src/app/data/vaulty.db
     volumes:
       - ./data:/usr/src/app/data
     restart: unless-stopped

@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shorty - Raccourcisseur d'URL</title>
-    <link rel="icon" type="image/png" href="/assets/shorty.png">
+    <title>Vaulty - Partage sécurisé de secrets</title>
+    <link rel="icon" type="image/png" href="/assets/vaulty.png">
     <link rel="stylesheet" href="/assets/style.css" nonce="{{nonce}}">
     <script src="/assets/qrcode.min.js" nonce="{{nonce}}"></script>
 </head>
@@ -14,47 +14,29 @@
     <div class="shorty__container">
         <div class="card">
             <header class="card__header">
-                <img src="/assets/shorty.png" alt="Logo de Shorty" class="card__logo">
-                <h1 class="card__title">Shorty</h1>
-                <p class="card__subtitle">Entrez un lien long pour générer une URL raccourcie optimisée</p>
+                <img src="/assets/vaulty.png" alt="Logo de Vaulty" class="card__logo">
+                <h1 class="card__title">Vaulty</h1>
+                <p class="card__subtitle">Partagez un secret ou mot de passe chiffré de façon sécurisée à vue unique</p>
             </header>
 
             <form id="shorten-form" class="form" autocomplete="off" novalidate>
                 <div class="form__group">
-                    <label class="form__label" for="url-input">URL de destination</label>
+                    <label class="form__label" for="url-input">Secret ou mot de passe à partager</label>
                     <div class="form__input-wrapper">
-                        <input type="url" id="url-input" class="form__input" placeholder="https://exemple.fr/mon-lien-tres-long" required>
+                        <textarea id="url-input" class="form__input secret-input__textarea" placeholder="Saisissez votre secret confidentiel ou mot de passe ici..." required></textarea>
                     </div>
                 </div>
 
-                <details class="form__options">
-                    <summary class="form__options-summary">Options de prévisualisation (Open Graph)</summary>
-                    <div class="form__options-content">
-                        <div class="form__group">
-                            <label class="form__label" for="og-title-input">Titre de l'aperçu</label>
-                            <input type="text" id="og-title-input" class="form__options-input" placeholder="Ex : Mon superbe article de blog">
-                        </div>
-                        <div class="form__group">
-                            <label class="form__label" for="og-desc-input">Description de l'aperçu</label>
-                            <input type="text" id="og-desc-input" class="form__options-input" placeholder="Ex : Découvrez les détails de ma dernière publication...">
-                        </div>
-                        <div class="form__group">
-                            <label class="form__label" for="og-image-input">URL de l'image de l'aperçu</label>
-                            <input type="url" id="og-image-input" class="form__options-input" placeholder="Ex : https://monsite.fr/images/banniere.png">
-                        </div>
-                    </div>
-                </details>
-
                 <button type="submit" id="submit-btn" class="form__submit-btn">
                     <span id="btn-spinner" class="form__spinner"></span>
-                    <span id="btn-text" class="form__btn-text">Raccourcir l'URL</span>
+                    <span id="btn-text" class="form__btn-text">Générer le lien sécurisé</span>
                 </button>
             </form>
 
-            <div id="error-message" class="alert alert--error"></div>
+            <div id="error-message" class="alert"></div>
 
             <div id="result-section" class="result">
-                <div class="result__label">URL raccourcie</div>
+                <div class="result__label">Lien de partage (vue unique)</div>
                 <div class="result__box">
                     <span id="result-url" class="result__url"></span>
                     <button id="copy-btn" class="result__copy-btn">Copier</button>
@@ -63,14 +45,13 @@
                 <div class="qr-code">
                     <div class="qr-code__label">Scanner le QR code</div>
                     <div id="qrcode" class="qr-code__display"></div>
-                    <a id="download-qr-btn" class="qr-code__download-btn" href="#" download="qrcode.png"
-                        style="display: none;">Télécharger le QR code</a>
+                    <a id="download-qr-btn" class="qr-code__download-btn u-hidden" href="#" download="qrcode.png">Télécharger le QR code</a>
                 </div>
             </div>
         </div>
 
         <footer class="shorty__footer">
-            Shorty &copy; 2026
+            Vaulty &copy; 2026
         </footer>
     </div>
 

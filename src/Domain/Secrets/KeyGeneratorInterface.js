@@ -1,8 +1,6 @@
-import ShortCodeVo from './ShortCodeVo.js';
-
 export default class KeyGeneratorInterface {
     /**
-     * @returns {ShortCodeVo}
+     * @returns {TokenVo}
      */
     generate() {
         throw new Error("Method 'generate()' must be implemented.");

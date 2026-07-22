@@ -12,13 +12,12 @@ const db = new Sqlite3(DB_PATH);
 try {
     await db.connect();
     await db.run(`
-        CREATE TABLE IF NOT EXISTS links (
-            short_code TEXT PRIMARY KEY,
-            original_url TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            og_title TEXT,
-            og_description TEXT,
-            og_image_url TEXT
+        CREATE TABLE IF NOT EXISTS secrets (
+            id TEXT PRIMARY KEY,
+            encrypted_content TEXT NOT NULL,
+            iv TEXT NOT NULL,
+            auth_tag TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
     console.log('Database schema initialized successfully.');

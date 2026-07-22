@@ -1,7 +1,7 @@
 (function () {
     // Preload logo image for QR Code personalization
     const logoImage = new Image();
-    logoImage.src = '/assets/shorty.png';
+    logoImage.src = '/assets/vaulty.png';
 
     const form = document.getElementById('shorten-form');
     const urlInput = document.getElementById('url-input');
@@ -23,20 +23,8 @@
             urlInput.classList.remove('form__input--valid', 'form__input--invalid');
             return;
         }
-
-        try {
-            const parsed = new URL(value);
-            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                urlInput.classList.remove('form__input--invalid');
-                urlInput.classList.add('form__input--valid');
-            } else {
-                urlInput.classList.remove('form__input--valid');
-                urlInput.classList.add('form__input--invalid');
-            }
-        } catch (_) {
-            urlInput.classList.remove('form__input--valid');
-            urlInput.classList.add('form__input--invalid');
-        }
+        urlInput.classList.remove('form__input--invalid');
+        urlInput.classList.add('form__input--valid');
     });
 
     form.addEventListener('submit', async (e) => {
@@ -44,19 +32,7 @@
 
         const urlValue = urlInput.value.trim();
         if (!urlValue) {
-            showError('Veuillez entrer une URL.');
-            return;
-        }
-
-        // Client-side quick protocol validation
-        try {
-            const parsed = new URL(urlValue);
-            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-                showError('Seuls les protocoles http et https sont supportés.');
-                return;
-            }
-        } catch (_) {
-            showError('Veuillez entrer une URL absolue valide (ex : https://exemple.fr).');
+            showError('Veuillez entrer un secret.');
             return;
         }
 
@@ -70,32 +46,29 @@
         btnText.textContent = 'Génération en cours...';
 
         try {
-            const response = await fetch('/api/shorty', {
+            const response = await fetch('/api/secret', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
-                    url: urlValue,
-                    ogTitle: document.getElementById('og-title-input').value.trim() || null,
-                    ogDescription: document.getElementById('og-desc-input').value.trim() || null,
-                    ogImageUrl: document.getElementById('og-image-input').value.trim() || null
+                    secret: urlValue
                 })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Une erreur est survenue lors de la génération du lien raccourci.');
+                throw new Error(data.message || 'Une erreur est survenue lors de la génération du lien sécurisé.');
             }
 
-            // Display shortened URL
-            resultUrl.textContent = data.shortUrl;
+            // Display secret URL
+            resultUrl.textContent = data.secretUrl;
 
             // Generate QR Code with high error correction level to support logo overlay
             if (!qrcodeInstance) {
                 qrcodeInstance = new QRCode(qrcodeContainer, {
-                    text: data.shortUrl,
+                    text: data.secretUrl,
                     width: 256,
                     height: 256,
                     colorDark: "#0f172a",
@@ -104,7 +77,7 @@
                 });
             } else {
                 qrcodeInstance.clear();
-                qrcodeInstance.makeCode(data.shortUrl);
+                qrcodeInstance.makeCode(data.secretUrl);
             }
 
             // Draw the logo and setup download link once the library completes rendering
@@ -127,7 +100,7 @@
         } finally {
             submitBtn.disabled = false;
             btnSpinner.style.display = 'none';
-            btnText.textContent = 'Raccourcir l\'URL';
+            btnText.textContent = 'Généner le lien sécurisé';
         }
     });
 
@@ -150,12 +123,16 @@
     });
 
     function showError(message) {
+        if (!errorMsg) return;
         errorMsg.textContent = message;
+        errorMsg.classList.add('alert--error');
         errorMsg.style.display = 'block';
     }
 
     function hideError() {
+        if (!errorMsg) return;
         errorMsg.style.display = 'none';
+        errorMsg.classList.remove('alert--error');
         errorMsg.textContent = '';
     }
 

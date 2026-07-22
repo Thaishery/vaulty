@@ -1,25 +1,25 @@
 import HttpResponder from "../../Helpers/HttpResponder.js";
 
-export class ShortyRoute {
-    static routePath = "/api/shorty";
+export class SecretRoute {
+    static routePath = "/api/secret";
     static routeMethod = "POST";
 
-    #shortenUrlUseCase;
+    #createSecretUseCase;
 
-    constructor(shortenUrlUseCase) {
-        this.#shortenUrlUseCase = shortenUrlUseCase;
+    constructor(createSecretUseCase) {
+        this.#createSecretUseCase = createSecretUseCase;
     }
 
     async handle(req, res, next) {
         let body = '';
         let bodySize = 0;
-        const maxBodySize = 10 * 1024; // 10KB limit to prevent DoS
+        const maxBodySize = 50 * 1024; // 50KB limit to accommodate longer passwords/secrets
 
         req.on('data', (chunk) => {
             bodySize += chunk.length;
             if (bodySize > maxBodySize) {
                 res.writeHead(413, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Payload Too Large', message: 'Request body exceeds 10KB limit.' }));
+                res.end(JSON.stringify({ error: 'Payload Too Large', message: 'Request body exceeds 50KB limit.' }));
                 req.destroy();
             } else {
                 body += chunk.toString();
@@ -27,7 +27,6 @@ export class ShortyRoute {
         });
 
         req.on('end', async () => {
-            // If request was already destroyed due to limit, return
             if (res.writableEnded) return;
 
             try {
@@ -41,30 +40,27 @@ export class ShortyRoute {
                     return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
                 }
 
-                const link = await this.#shortenUrlUseCase.execute(
-                    payload.url,
-                    payload.ogTitle || null,
-                    payload.ogDescription || null,
-                    payload.ogImageUrl || null
-                );
+                const secretText = payload.secret || payload.url;
+                if (!secretText) {
+                    return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Secret content is required.' });
+                }
+
+                const { token } = await this.#createSecretUseCase.execute(secretText);
 
                 const proto = req.headers['x-forwarded-proto'] || 'http';
                 const hostHeader = req.headers.host || "localhost:3000";
-                const shortenedLink = `${proto}://${hostHeader}/${link.shortCode.value()}`;
+                const secretUrl = `${proto}://${hostHeader}/${token}`;
+
                 return HttpResponder.sendJSON(res, 201, {
-                    shortCode: link.shortCode.value(),
-                    shortUrl: shortenedLink,
-                    originalUrl: link.originalUrl.value(),
-                    ogTitle: link.ogTitle,
-                    ogDescription: link.ogDescription,
-                    ogImageUrl: link.ogImageUrl
+                    token,
+                    secretUrl
                 });
             } catch (err) {
-                console.error('ShortyRoute caught an error:', err);
+                console.error('SecretRoute caught an error:', err);
                 if (err.name === 'DomainError') {
                     return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: err.message });
                 }
-                return HttpResponder.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist shortened URL.' });
+                return HttpResponder.sendJSON(res, 500, { error: 'Internal Server Error', message: 'Failed to persist secret.' });
             }
         });
         return;

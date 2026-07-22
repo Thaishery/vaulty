@@ -1,6 +1,10 @@
 export default class HttpResponder {
-    static setSecurityHeaders(res, cspHeader = "default-src 'none'; frame-ancestors 'none';") {
-        res.setHeader('Content-Security-Policy', cspHeader);
+    static setSecurityHeaders(res, cspHeader) {
+        if (cspHeader) {
+            res.setHeader('Content-Security-Policy', cspHeader);
+        } else if (!res.getHeader('Content-Security-Policy')) {
+            res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none';");
+        }
         res.setHeader('X-Frame-Options', 'DENY');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Referrer-Policy', 'no-referrer');
@@ -19,8 +23,8 @@ export default class HttpResponder {
         res.end();
     }
 
-    static sendHTML(res, statusCode, html) {
-        this.setSecurityHeaders(res);
+    static sendHTML(res, statusCode, html, cspHeader) {
+        this.setSecurityHeaders(res, cspHeader);
         res.writeHead(statusCode, { 'Content-Type': 'text/html' });
         res.end(html);
     }

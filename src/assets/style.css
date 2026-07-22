@@ -276,16 +276,30 @@ body {
 .alert {
     display: none;
     margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     animation: alert-fadeIn 0.3s ease-out;
 }
 
+.alert:empty {
+    display: none !important;
+}
+
 .alert--error {
+    display: block;
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.2);
     color: #fca5a5;
+}
+
+.alert--success {
+    display: block;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #a7f3d0;
 }
 
 @keyframes alert-fadeIn {
@@ -304,6 +318,55 @@ body {
     padding-top: 1.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     animation: result-slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.result--visible {
+    display: block;
+    margin-top: 1.5rem;
+}
+
+.secret-display__textarea {
+    font-family: monospace;
+    font-size: 0.95rem;
+    width: 100%;
+    height: 120px;
+    resize: none;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    padding: 0.75rem;
+    margin-right: 0.75rem;
+}
+
+.secret-input__textarea {
+    height: 100px;
+    resize: none;
+    padding: 0.75rem;
+    font-family: monospace;
+}
+
+.secret-display__copy-btn {
+    height: 120px;
+    align-self: center;
+}
+
+.card__actions {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.card__action-btn {
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: auto;
+    padding: 0.75rem 2rem;
+}
+
+.u-hidden {
+    display: none !important;
 }
 
 .result__label {
