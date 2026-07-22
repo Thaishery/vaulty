@@ -1,12 +1,14 @@
-# Shorty
+# Vaulty
 
-**Shorty** est un raccourcisseur d'URL simple, sécurisé et performant écrit en Node.js natif (sans framework HTTP lourd comme Express) avec une base de données SQLite.
+**Vaulty** est un outil de partage de secrets et de mots de passe à lecture unique (one-time secret), sécurisé et performant, écrit en Node.js natif (sans framework HTTP lourd comme Express) avec une base de données SQLite.
 
 Le projet propose :
-- Une interface web
-- Génération de QR Codes pour télécharger ou partager les liens raccourcis.
-- Un Rate Limiter (pare-feu) intégré pour protéger l'application contre les abus. (voir Firewall.js)
-- Option de personalisation des métaDonnées du lien générer pour les intégration et prévisualisation tel que Discord.
+- Une interface web simple et intuitive pour chiffrer et partager des secrets.
+- Destruction automatique du secret après première lecture (lecture unique / *burn after reading*).
+- Gestion automatique de la durée de vie (TTL) et purge des secrets expirés.
+- Chiffrement AES-256-GCM sécurisé des payloads en base de données.
+- Un Rate Limiter (pare-feu) intégré pour protéger l'application contre les abus (voir `Firewall.js`).
+- En-têtes de sécurité renforcés avec Politique de Sécurité du Contenu (CSP) stricte et nonces dynamiques.
 
 ---
 
@@ -29,7 +31,7 @@ docker compose up --build
 Cette commande va :
 1. Construire l'image du conteneur.
 2. Installer les dépendances Node.js.
-3. Initialiser la structure de la base de données SQLite (via la migration automatique).
+3. Initialiser la structure de la base de données SQLite (via les migrations automatiques).
 4. Démarrer le serveur sur le port `3000`.
 
 L'application sera alors accessible à l'adresse suivante : [http://localhost:3000](http://localhost:3000).
@@ -78,7 +80,7 @@ server {
 
     # Reverse Proxy vers le conteneur Node.js
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3443;
         
         # Transmission des bons headers pour que Node sache d'où vient le trafic
         proxy_http_version 1.1;
@@ -104,56 +106,63 @@ Le projet est structuré selon les principes du **Domain-Driven Design (DDD)** a
 ### 1. Couche Domaine (`src/Domain`)
 C'est le cœur de l'application. Elle contient les concepts et les règles métier purs, sans aucune dépendance envers des bibliothèques externes ou des bases de données.
 - **Entities & Aggregates** :
-  - `Link` : Représente le concept central d'un lien raccourci. Il est identifiable de manière unique par son `ShortCodeVo`.
-- **Value Objects (VO)** : Objets immuables validant leurs règles métiers (invariants) à la création :
-  - `OriginalUrlVo` : Valide la présence, la longueur (< 2048 caractères), le format et les protocoles autorisés (`http` / `https`).
-  - `ShortCodeVo` : Valide le code unique généré pour l'URL.
-  - `ClientAgentVo` : Encapsule les informations de l'agent utilisateur (User-Agent) effectuant la requête.
-- **Policies** :
-  - `RedirectionPolicy` : Encapsule la règle métier déterminant si la redirection nécessite l'affichage d'une prévisualisation (ex: intégration Instagram pour Discordbot).
-- **Interfaces (Contrats)** : Définissent les exigences du domaine pour des services externes (`LinkRepositoryInterface`, `KeyGeneratorInterface`).
+  - `Secret` : Représente le secret chiffré stocké temporairement.
+- **Value Objects (VO)** : Objets immuables validant leurs règles métiers à la création :
+  - `AccessSecretToken` : Valide le jeton unique permettant d'accéder au secret.
+  - `SecretLookupHash` : Empreinte cryptographique de recherche (dbKey) permettant d'identifier le secret sans stocker le token en clair.
+  - `EncryptedPayload` : Encapsule les données chiffrées (`ciphertext`, `iv`, `authTag`).
+  - `SecretTTL` : Valide et calcule la durée de vie (Time-To-Live) et la date d'expiration du secret.
+- **Interfaces (Contrats)** : Définissent les exigences du domaine pour les services externes (`SecretRepositoryInterface`, `SecretCryptoInterface`, `KeyGeneratorInterface`).
 
 ### 2. Couche Application (`src/Application`)
 Elle orchestre les objets du domaine pour réaliser les cas d'utilisation métier (Use Cases) de l'application.
 - **Use Cases** :
-  - `ShortenUrlUseCase` : Coordonne la création d'un code unique, l'instanciation de l'entité `Link` et sa persistance.
-  - `RedirectUrlUseCase` : Récupère le lien raccourci et applique la `RedirectionPolicy` pour déterminer le type de redirection à renvoyer.
+  - `CreateSecretUseCase` : Génère le token d'accès, chiffre le secret et enregistre l'entité `Secret` chiffrée.
+  - `RetrieveSecretUseCase` : Récupère le secret, le supprime immédiatement en base (lecture unique destructive), vérifie son expiration et le déchiffre.
+  - `CleanupExpiredSecretsUseCase` : Purge automatiquement les secrets dont le TTL est dépassé.
 
 ### 3. Couche Infrastructure (`src/Infrastructure`)
 Elle fournit les implémentations concrètes des contrats définis par le domaine et gère les outils techniques.
 - **Repositories** :
-  - `LinkRepository` : Implémente la persistance dans la base SQLite.
-  - `CachedLinkRepository` : Un décorateur de repository qui encapsule `LinkRepository` pour lui adjoindre une stratégie de mise en cache rapide en mémoire via `UrlCache`.
-- **Services et Outils** : `Sqlite3` (gestionnaire de connexion), `Firewall` (rate-limiter d'adresses IP), et `Server` (serveur HTTP léger).
+  - `SecretRepository` : Implémente la persistance et la suppression des secrets dans la base SQLite.
+- **Services et Outils** :
+  - `CryptoService` : Gère le chiffrement AES-256-GCM et la dérivation des clés cryptographiques.
+  - `SecureTokenGenerator` : Génère des jetons aléatoires hautement sécurisés.
+  - `Sqlite3` (gestionnaire de base de données), `Firewall` (rate-limiter d'adresses IP), et `Server` (serveur HTTP léger).
 
 ### 4. Couche Présentation (`src/Presentation`)
-Gère les interfaces de communication avec l'utilisateur et les clients de l'API (HTTP, templates HTML, CSS).
+Gère les interfaces de communication avec l'utilisateur et les clients de l'API (HTTP, rendu HTML, CSS).
 - **Routes & Contrôleurs** :
-  - `ShortyRoute` : Point de terminaison API `POST /api/shorty`.
-  - `CodeRoute` : Route de redirection `GET /:code` gérant le routage vers l'URL d'origine ou la page de prévisualisation.
-  - `HomeRoute` et `AssetsRoute` : Rendu de l'interface graphique et des fichiers statiques.
+  - `SecretRoute` : Point de terminaison API `POST /api/secret` pour créer un secret.
+  - `ViewSecretRoute` : Route HTML de consultation `GET /:token` qui déchiffre et affiche le secret une seule fois.
+  - `HomeRoute` et `AssetsRoute` : Rendu de l'interface d'accueil et distribution des fichiers statiques.
 
 ---
 
 ## Utilisation des API
 
-L'application expose également une API simple pour créer des liens raccourcis de manière programmatique en prévision d'une future intégration via une extension navigateur web.
+L'application expose une API simple permettant de créer des secrets de manière programmatique.
 
-### Raccourcir une URL
+### Créer un secret
 - **Méthode** : `POST`
-- **Chemin** : `/api/shorty`
+- **Chemin** : `/api/secret`
 - **En-tête** : `Content-Type: application/json`
 - **Corps de la requête** :
   ```json
   {
-    "url": "https://example.com/une-tres-longue-adresse-a-raccourcir"
+    "secret": "MonMotDePasseTresSecret123!"
   }
   ```
 - **Réponse (201 Created)** :
   ```json
   {
-    "shortCode": "1a2b3c",
-    "shortUrl": "http://localhost:3000/1a2b3c",
-    "originalUrl": "https://example.com/une-tres-longue-adresse-a-raccourcir"
+    "token": "a1b2c3d4e5f6g7h8i9j0",
+    "secretUrl": "http://localhost:3000/a1b2c3d4e5f6g7h8i9j0"
   }
   ```
+
+### Consulter un secret
+- **Méthode** : `GET`
+- **Chemin** : `/:token`
+- **Description** : Renvoie la page HTML de consultation du secret. Dès la réception de la requête, le secret est déchiffré et détruit de la base de données. Toute tentative ultérieure de rechargement ou d'accès avec le même lien retournera une erreur de secret introuvable ou expiré.
+
