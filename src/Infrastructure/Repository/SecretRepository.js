@@ -1,6 +1,7 @@
 import SecretRepositoryInterface from '../../Domain/Secrets/SecretRepositoryInterface.js';
 import Secret from '../../Domain/Secrets/Secret.js';
-import TokenVo from '../../Domain/Secrets/TokenVo.js';
+import SecretLookupHash from '../../Domain/Secrets/SecretLookupHash.js';
+import EncryptedPayload from '../../Domain/Secrets/EncryptedPayload.js';
 
 export default class SecretRepository extends SecretRepositoryInterface {
     #db;
@@ -10,15 +11,15 @@ export default class SecretRepository extends SecretRepositoryInterface {
         this.#db = db;
     }
 
-    async retrieveSecretByDbKey(dbKeyVo) {
-        if (!(dbKeyVo instanceof TokenVo)) {
-            throw new Error('dbKeyVo must be a TokenVo instance');
+    async findByHash(lookupHash) {
+        if (!(lookupHash instanceof SecretLookupHash)) {
+            throw new Error('lookupHash must be a SecretLookupHash instance');
         }
-        const dbKey = dbKeyVo.value();
+        const dbKey = lookupHash.value();
 
         return new Promise((resolve, reject) => {
             this.#db.get(
-                `SELECT encrypted_content, iv, auth_tag FROM secrets WHERE id = ?`,
+                `SELECT encrypted_content, iv, auth_tag, created_at FROM secrets WHERE id = ?`,
                 [dbKey],
                 (err, row) => {
                     if (err) {
@@ -27,11 +28,16 @@ export default class SecretRepository extends SecretRepositoryInterface {
                     if (!row) {
                         return resolve(null);
                     }
-                    resolve(new Secret(
-                        dbKeyVo,
+                    const payload = new EncryptedPayload(
                         row.encrypted_content,
                         row.iv,
                         row.auth_tag
+                    );
+                    const createdAt = row.created_at ? new Date(row.created_at) : new Date();
+                    resolve(new Secret(
+                        lookupHash,
+                        payload,
+                        createdAt
                     ));
                 }
             );
@@ -47,10 +53,10 @@ export default class SecretRepository extends SecretRepositoryInterface {
                 'INSERT INTO secrets (id, encrypted_content, iv, auth_tag) VALUES (?, ?, ?, ?)'
             );
             stmt.run(
-                secret.id.value(),
-                secret.encryptedContent,
-                secret.iv,
-                secret.authTag,
+                secret.lookupHash.value(),
+                secret.encryptedPayload.ciphertext,
+                secret.encryptedPayload.iv,
+                secret.encryptedPayload.authTag,
                 (err) => {
                     if (err) {
                         return reject(err);
@@ -62,19 +68,31 @@ export default class SecretRepository extends SecretRepositoryInterface {
         });
     }
 
-    async delete(dbKeyVo) {
-        if (!(dbKeyVo instanceof TokenVo)) {
-            throw new Error('dbKeyVo must be a TokenVo instance');
+    async deleteByHash(lookupHash) {
+        if (!(lookupHash instanceof SecretLookupHash)) {
+            throw new Error('lookupHash must be a SecretLookupHash instance');
         }
-        const dbKey = dbKeyVo.value();
+        const dbKey = lookupHash.value();
         await this.#db.run('DELETE FROM secrets WHERE id = ?', [dbKey]);
     }
 
-    async deleteExpiredSecrets(maxAgeDays = 365) {
+    async deleteSecretsCreatedBefore(cutoffDate) {
+        const dateObj = cutoffDate instanceof Date ? cutoffDate : new Date(cutoffDate);
+        if (isNaN(dateObj.getTime())) {
+            throw new Error('cutoffDate must be a valid Date instance');
+        }
+        // Format as SQLite UTC timestamp string: "YYYY-MM-DD HH:MM:SS"
+        const formattedDate = dateObj.toISOString().replace('T', ' ').substring(0, 19);
         const result = await this.#db.run(
-            `DELETE FROM secrets WHERE created_at < DATETIME('now', ? || ' days')`,
-            [`-${maxAgeDays}`]
+            `DELETE FROM secrets WHERE created_at < ?`,
+            [formattedDate]
         );
         return result?.changes || 0;
     }
+
+    async deleteExpiredSecrets(maxAgeDays = 365) {
+        const cutoffDate = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+        return this.deleteSecretsCreatedBefore(cutoffDate);
+    }
 }
+

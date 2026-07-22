@@ -1,50 +1,67 @@
-import TokenVo from "./TokenVo.js";
+import SecretLookupHash from "./SecretLookupHash.js";
+import EncryptedPayload from "./EncryptedPayload.js";
+import SecretTTL from "./SecretTTL.js";
+import DomainError from "../Errors/DomainError.js";
 
 export default class Secret {
-    #id;
-    #encryptedContent;
-    #iv;
-    #authTag;
+    #lookupHash;
+    #encryptedPayload;
+    #createdAt;
 
-    constructor(id, encryptedContent, iv, authTag) {
-        if (!(id instanceof TokenVo)) {
-            throw new Error('id must be a TokenVo');
+    constructor(lookupHash, encryptedPayload, createdAt = new Date()) {
+        if (!(lookupHash instanceof SecretLookupHash)) {
+            throw new DomainError(
+                'lookupHash must be a SecretLookupHash instance.',
+                'LOOKUP_HASH_INVALID',
+                'validation'
+            );
         }
-        if (typeof encryptedContent !== 'string' || !encryptedContent) {
-            throw new Error('encryptedContent must be a non-empty string');
-        }
-        if (typeof iv !== 'string' || !iv) {
-            throw new Error('iv must be a non-empty string');
-        }
-        if (typeof authTag !== 'string' || !authTag) {
-            throw new Error('authTag must be a non-empty string');
+        if (!(encryptedPayload instanceof EncryptedPayload)) {
+            throw new DomainError(
+                'encryptedPayload must be an EncryptedPayload instance.',
+                'ENCRYPTED_PAYLOAD_INVALID',
+                'validation'
+            );
         }
 
-        this.#id = id;
-        this.#encryptedContent = encryptedContent;
-        this.#iv = iv;
-        this.#authTag = authTag;
+        const parsedDate = createdAt instanceof Date ? createdAt : new Date(createdAt);
+        if (isNaN(parsedDate.getTime())) {
+            throw new DomainError(
+                'createdAt must be a valid Date.',
+                'CREATED_AT_INVALID',
+                'validation'
+            );
+        }
+
+        this.#lookupHash = lookupHash;
+        this.#encryptedPayload = encryptedPayload;
+        this.#createdAt = parsedDate;
         Object.freeze(this);
     }
 
+    get lookupHash() {
+        return this.#lookupHash;
+    }
+
     get id() {
-        return this.#id;
+        return this.#lookupHash;
     }
 
-    get encryptedContent() {
-        return this.#encryptedContent;
+    get encryptedPayload() {
+        return this.#encryptedPayload;
     }
 
-    get iv() {
-        return this.#iv;
+    get createdAt() {
+        return this.#createdAt;
     }
 
-    get authTag() {
-        return this.#authTag;
+    isExpired(ttl = SecretTTL.default(), now = new Date()) {
+        const activeTtl = ttl instanceof SecretTTL ? ttl : new SecretTTL(ttl);
+        return activeTtl.isExpired(this.#createdAt, now);
     }
 
-    static create(id, encryptedContent, iv, authTag) {
-        const tokenVo = id instanceof TokenVo ? id : new TokenVo(id);
-        return new Secret(tokenVo, encryptedContent, iv, authTag);
+    static create(lookupHash, encryptedPayload, createdAt = new Date()) {
+        const hashVo = lookupHash instanceof SecretLookupHash ? lookupHash : new SecretLookupHash(lookupHash);
+        return new Secret(hashVo, encryptedPayload, createdAt);
     }
 }

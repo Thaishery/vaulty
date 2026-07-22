@@ -40,7 +40,7 @@ export class SecretRoute {
                     return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Invalid JSON payload.' });
                 }
 
-                const secretText = payload.secret || payload.url;
+                const secretText = payload.secret;
                 if (!secretText) {
                     return HttpResponder.sendJSON(res, 400, { error: 'Bad Request', message: 'Secret content is required.' });
                 }

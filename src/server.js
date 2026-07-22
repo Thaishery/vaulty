@@ -8,18 +8,18 @@ import Sqlite3 from './Infrastructure/Sqlite3.js';
 import { SecretRoute } from './Presentation/Routes/Api/SecretRoute.js';
 import { ViewSecretRoute } from './Presentation/Routes/ViewSecretRoute.js';
 import { SecureTokenGenerator } from './Infrastructure/Services/SecureTokenGenerator.js';
+import { CryptoService } from './Infrastructure/Services/CryptoService.js';
 import SecretRepository from './Infrastructure/Repository/SecretRepository.js';
-import CachedSecretRepository from './Infrastructure/Repository/CachedSecretRepository.js';
 import CreateSecretUseCase from './Application/UseCases/CreateSecretUseCase.js';
 import RetrieveSecretUseCase from './Application/UseCases/RetrieveSecretUseCase.js';
 import CleanupExpiredSecretsUseCase from './Application/UseCases/CleanupExpiredSecretsUseCase.js';
-import UrlCache from './Infrastructure/UrlCache.js';
+import SecretTTL from './Domain/Secrets/SecretTTL.js';
 import { Firewall } from './Infrastructure/Firewall.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = parseInt(process.env.PORT, 10);
-const HOST = process.env.HOST;
-const DB_PATH = process.env.DB_PATH;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+const DB_PATH = process.env.DB_PATH || './data/vaulty.db';
 
 // Pre-load static HTML templates to avoid blocking I/O on request handling
 const indexHtmlContent = fs.readFileSync(path.join(__dirname, 'html', 'index.html'), 'utf8');
@@ -27,21 +27,20 @@ const secretHtmlContent = fs.readFileSync(path.join(__dirname, 'html', 'secret.h
 
 const db = new Sqlite3(DB_PATH);
 await db.connect();
-const urlCache = new UrlCache();
 const firewall = new Firewall();
 const keyGenerator = new SecureTokenGenerator();
-const rawSecretRepository = new SecretRepository(db);
-const secretRepository = new CachedSecretRepository(rawSecretRepository, urlCache);
-const createSecretUseCase = new CreateSecretUseCase(secretRepository, keyGenerator);
-const retrieveSecretUseCase = new RetrieveSecretUseCase(secretRepository);
+const cryptoService = new CryptoService();
+const secretRepository = new SecretRepository(db);
+const createSecretUseCase = new CreateSecretUseCase(secretRepository, keyGenerator, cryptoService);
+const retrieveSecretUseCase = new RetrieveSecretUseCase(secretRepository, cryptoService);
 const cleanupExpiredSecretsUseCase = new CleanupExpiredSecretsUseCase(secretRepository);
 
-// Run initial cleanup of secrets older than 365 days on startup
-await cleanupExpiredSecretsUseCase.execute(365);
+// Run initial cleanup of secrets on startup using domain default SecretTTL (365 days)
+await cleanupExpiredSecretsUseCase.execute();
 // Schedule cleanup task to run every 24 hours (24 * 60 * 60 * 1000 ms)
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const cleanupInterval = setInterval(() => {
-    cleanupExpiredSecretsUseCase.execute(365);
+    cleanupExpiredSecretsUseCase.execute();
 }, CLEANUP_INTERVAL_MS);
 
 const secretRoute = new SecretRoute(createSecretUseCase);

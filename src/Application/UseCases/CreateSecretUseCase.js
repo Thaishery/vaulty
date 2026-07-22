@@ -1,14 +1,16 @@
 import Secret from '../../Domain/Secrets/Secret.js';
-import TokenVo from '../../Domain/Secrets/TokenVo.js';
-import { CryptoService } from '../../Infrastructure/Services/CryptoService.js';
+import SecretLookupHash from '../../Domain/Secrets/SecretLookupHash.js';
+import EncryptedPayload from '../../Domain/Secrets/EncryptedPayload.js';
 
 export default class CreateSecretUseCase {
     #secretRepository;
     #keyGenerator;
+    #secretCrypto;
 
-    constructor(secretRepository, keyGenerator) {
+    constructor(secretRepository, keyGenerator, secretCrypto) {
         this.#secretRepository = secretRepository;
         this.#keyGenerator = keyGenerator;
+        this.#secretCrypto = secretCrypto;
     }
 
     /**
@@ -21,21 +23,23 @@ export default class CreateSecretUseCase {
             throw new Error('Secret must be a non-empty string');
         }
 
-        // 1. Generate the secure token
-        const tokenVo = this.#keyGenerator.generate();
-        const token = tokenVo.value();
+        // 1. Generate the secure access token
+        const accessToken = this.#keyGenerator.generate();
+        const token = accessToken.value();
 
-        // 2. Derive dbKey and encryption key
-        const { dbKey, encryptionKey } = CryptoService.deriveKeys(token);
+        // 2. Derive dbKey and encryption key via Domain Crypto Service
+        const { dbKey, encryptionKey } = this.#secretCrypto.deriveKeys(token);
 
         // 3. Encrypt the secret
-        const { ciphertext, iv, tag } = CryptoService.encrypt(plaintextSecret, encryptionKey);
+        const { ciphertext, iv, tag } = this.#secretCrypto.encrypt(plaintextSecret, encryptionKey);
 
-        // 4. Create and save Secret entity using dbKey as the identifier
-        const dbKeyVo = new TokenVo(dbKey);
-        const secret = Secret.create(dbKeyVo, ciphertext, iv, tag);
+        // 4. Create and save Secret entity using lookup hash & encrypted payload
+        const lookupHash = new SecretLookupHash(dbKey);
+        const encryptedPayload = new EncryptedPayload(ciphertext, iv, tag);
+        const secret = Secret.create(lookupHash, encryptedPayload);
         await this.#secretRepository.save(secret);
 
         return { token, secret };
     }
 }
+

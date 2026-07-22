@@ -1,3 +1,5 @@
+import SecretLookupHash from "./SecretLookupHash.js";
+
 export default class SecretRepositoryInterface {
     /**
      * @param {Secret} secret
@@ -8,27 +10,27 @@ export default class SecretRepositoryInterface {
     }
 
     /**
-     * @param {TokenVo} dbKeyVo
+     * @param {SecretLookupHash} lookupHash
      * @returns {Promise<Secret|null>}
      */
-    async retrieveSecretByDbKey(dbKeyVo) {
-        throw new Error("Method 'retrieveSecretByDbKey(dbKeyVo)' must be implemented.");
+    async findByHash(lookupHash) {
+        throw new Error("Method 'findByHash(lookupHash)' must be implemented.");
     }
 
     /**
-     * @param {TokenVo} dbKeyVo
+     * @param {SecretLookupHash} lookupHash
      * @throws Error
      */
-    async delete(dbKeyVo) {
-        throw new Error("Method 'delete(dbKeyVo)' must be implemented.");
+    async deleteByHash(lookupHash) {
+        throw new Error("Method 'deleteByHash(lookupHash)' must be implemented.");
     }
 
     /**
-     * Deletes secrets older than maxAgeDays.
-     * @param {number} maxAgeDays
+     * Deletes secrets created before the specified cutoff date.
+     * @param {Date} cutoffDate
      * @returns {Promise<number>} Number of deleted secrets
      */
-    async deleteExpiredSecrets(maxAgeDays = 365) {
-        throw new Error("Method 'deleteExpiredSecrets(maxAgeDays)' must be implemented.");
+    async deleteSecretsCreatedBefore(cutoffDate) {
+        throw new Error("Method 'deleteSecretsCreatedBefore(cutoffDate)' must be implemented.");
     }
 }
