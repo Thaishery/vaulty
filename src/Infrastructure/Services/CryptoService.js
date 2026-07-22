@@ -7,8 +7,9 @@ export class CryptoService {
      * @returns {{ dbKey: string, encryptionKey: Buffer }}
      */
     static deriveKeys(token) {
-        const dbKey = crypto.createHash('sha256').update(token).digest('hex');
-        const encryptionKey = crypto.createHash('sha256').update(token + '-key').digest();
+        const dbKeyBuffer = Buffer.from(crypto.hkdfSync('sha256', token, '', 'vaulty-db-key', 32));
+        const dbKey = dbKeyBuffer.toString('hex');
+        const encryptionKey = Buffer.from(crypto.hkdfSync('sha256', token, '', 'vaulty-encryption-key', 32));
         return { dbKey, encryptionKey };
     }
 

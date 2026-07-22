@@ -69,4 +69,12 @@ export default class SecretRepository extends SecretRepositoryInterface {
         const dbKey = dbKeyVo.value();
         await this.#db.run('DELETE FROM secrets WHERE id = ?', [dbKey]);
     }
+
+    async deleteExpiredSecrets(maxAgeDays = 365) {
+        const result = await this.#db.run(
+            `DELETE FROM secrets WHERE created_at < DATETIME('now', ? || ' days')`,
+            [`-${maxAgeDays}`]
+        );
+        return result?.changes || 0;
+    }
 }

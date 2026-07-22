@@ -48,4 +48,8 @@ export default class CachedSecretRepository extends SecretRepositoryInterface {
         this.#cache.delete(dbKey);
         await this.#innerRepository.delete(dbKeyVo);
     }
+
+    async deleteExpiredSecrets(maxAgeDays = 365) {
+        return await this.#innerRepository.deleteExpiredSecrets(maxAgeDays);
+    }
 }

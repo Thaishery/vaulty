@@ -12,6 +12,7 @@ import SecretRepository from './Infrastructure/Repository/SecretRepository.js';
 import CachedSecretRepository from './Infrastructure/Repository/CachedSecretRepository.js';
 import CreateSecretUseCase from './Application/UseCases/CreateSecretUseCase.js';
 import RetrieveSecretUseCase from './Application/UseCases/RetrieveSecretUseCase.js';
+import CleanupExpiredSecretsUseCase from './Application/UseCases/CleanupExpiredSecretsUseCase.js';
 import UrlCache from './Infrastructure/UrlCache.js';
 import { Firewall } from './Infrastructure/Firewall.js';
 
@@ -33,6 +34,15 @@ const rawSecretRepository = new SecretRepository(db);
 const secretRepository = new CachedSecretRepository(rawSecretRepository, urlCache);
 const createSecretUseCase = new CreateSecretUseCase(secretRepository, keyGenerator);
 const retrieveSecretUseCase = new RetrieveSecretUseCase(secretRepository);
+const cleanupExpiredSecretsUseCase = new CleanupExpiredSecretsUseCase(secretRepository);
+
+// Run initial cleanup of secrets older than 365 days on startup
+await cleanupExpiredSecretsUseCase.execute(365);
+// Schedule cleanup task to run every 24 hours (24 * 60 * 60 * 1000 ms)
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const cleanupInterval = setInterval(() => {
+    cleanupExpiredSecretsUseCase.execute(365);
+}, CLEANUP_INTERVAL_MS);
 
 const secretRoute = new SecretRoute(createSecretUseCase);
 const viewSecretRoute = new ViewSecretRoute(retrieveSecretUseCase, secretHtmlContent);
@@ -47,5 +57,11 @@ server.addRoute(HomeRoute.routeMethod, HomeRoute.routePath, homeRoute.handle.bin
 server.start(PORT, HOST);
 
 // Graceful shutdown
-process.on('SIGTERM', server.stop.bind(server));
-process.on('SIGINT', server.stop.bind(server));
+process.on('SIGTERM', () => {
+    clearInterval(cleanupInterval);
+    server.stop();
+});
+process.on('SIGINT', () => {
+    clearInterval(cleanupInterval);
+    server.stop();
+});
