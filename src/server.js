@@ -13,7 +13,7 @@ import SecretRepository from './Infrastructure/Repository/SecretRepository.js';
 import CreateSecretUseCase from './Application/UseCases/CreateSecretUseCase.js';
 import RetrieveSecretUseCase from './Application/UseCases/RetrieveSecretUseCase.js';
 import CleanupExpiredSecretsUseCase from './Application/UseCases/CleanupExpiredSecretsUseCase.js';
-import SecretTTL from './Domain/Secrets/SecretTTL.js';
+import { RobotsRoute } from './Presentation/Routes/RobotsRoute.js';
 import { Firewall } from './Infrastructure/Firewall.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +49,7 @@ const homeRoute = new HomeRoute(indexHtmlContent);
 
 const server = new Server(db, firewall);
 server.addRoute(AssetsRoute.routeMethod, AssetsRoute.routePath, AssetsRoute.handle);
+server.addRoute(RobotsRoute.routeMethod, RobotsRoute.routePath, RobotsRoute.handle);
 server.addRoute(SecretRoute.routeMethod, SecretRoute.routePath, secretRoute.handle.bind(secretRoute));
 server.addRoute(ViewSecretRoute.routeMethod, ViewSecretRoute.routePath, viewSecretRoute.handle.bind(viewSecretRoute));
 server.addRoute(HomeRoute.routeMethod, HomeRoute.routePath, homeRoute.handle.bind(homeRoute));
